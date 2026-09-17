@@ -33,9 +33,16 @@ Este arquivo registra o contexto necessário para retomar o desenvolvimento sem 
 - PDO com prepared statements;
 - Router próprio e `GET /health`;
 - `POST /auth/login` com JWT;
+- Principal autenticado, parser de Bearer token e middleware JWT;
+- Middleware de papel e pipeline de middlewares no router;
+- Rota administrativa protegida `GET /admin/ping`;
+- Especificação de autorização em `docs/specs/authorization.md`;
+- Testes unitários para principal, autenticação, ACL e integração do pipeline no router;
+- Teste HTTP real em `backend/bin/test-http.sh`, cobrindo `401`, `403` e `200`;
 - `firebase/php-jwt` 7.1.1;
 - `composer.lock` versionado;
-- PHPUnit: 7 testes e 10 assertions passando no último ciclo.
+- PHPUnit: 14 testes e 24 assertions passando;
+- Verificação HTTP Dockerizada passando.
 
 ## Credenciais locais
 
@@ -47,20 +54,15 @@ seller2@toro.local / seller123
 
 ## Próxima tarefa imediata
 
-Implementar middleware de autenticação:
-
-1. Ler `Authorization: Bearer <token>`;
-2. Validar assinatura e expiração;
-3. Disponibilizar identidade autenticada para a requisição;
-4. Retornar `401` para token ausente ou inválido;
-5. Criar middleware de papel retornando `403` para seller em rota admin;
-6. Adicionar testes unitários e de integração.
+Iniciar o plano de criação do CRUD de produtos usando a ACL já concluída.
 
 ## Backlog ordenado
 
-- [ ] Middleware JWT;
-- [ ] ACL por papel;
-- [ ] Especificação e testes de autorização;
+- [x] Middleware JWT;
+- [x] ACL por papel;
+- [x] Parser de header e principal autenticado;
+- [x] Especificação e testes unitários de autorização;
+- [x] Teste HTTP de rota protegida;
 - [ ] CRUD de produtos;
 - [ ] Campanhas;
 - [ ] Motor de pontuação;

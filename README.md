@@ -14,6 +14,11 @@ Já implementado:
 - Migration e seed idempotentes executados no boot;
 - Conexão PDO com prepared statements;
 - Login com JWT;
+- Middleware JWT com principal autenticado;
+- ACL por papel com respostas `401` e `403`;
+- Pipeline de middlewares por rota no router;
+- Rota administrativa protegida `GET /admin/ping` para verificação HTTP;
+- Especificação de autorização e testes unitários do principal, autenticação, ACL e pipeline;
 - Verificação de senha com `password_verify`;
 - `firebase/php-jwt` 7.x com `composer.lock` versionado.
 
@@ -92,6 +97,16 @@ Credenciais inválidas retornam `401`. Campos ausentes ou inválidos retornam `4
 
 O token contém `sub`, `role`, `iat` e `exp`. O segredo é configurado por `JWT_SECRET` no ambiente; o Compose fornece um valor de desenvolvimento padrão. Em qualquer ambiente real, substitua esse valor por um segredo aleatório com pelo menos 32 caracteres.
 
+As rotas de negócio ainda estão em implementação. O middleware de autenticação e a ACL já estão prontos para serem aplicados às rotas administrativas e de carteira.
+
+### Verificação de autorização
+
+```bash
+backend/bin/test-http.sh
+```
+
+O script usa a API Dockerizada e verifica a rota `GET /admin/ping` sem token (`401`), com token de seller (`403`) e com token de admin (`200`).
+
 ## Testes
 
 Executar a suíte PHPUnit dentro do container:
@@ -106,6 +121,10 @@ O projeto também possui testes unitários para:
 - Router;
 - Emissão e validação de JWT;
 - Login válido e inválido.
+- Principal autenticado e validação de papel;
+- Autenticação de rotas com Bearer token;
+- Pipeline de middlewares do router, incluindo os cenários `401` e `403`.
+- Verificação HTTP real da rota protegida com `curl`.
 
 ## Banco de dados
 
@@ -135,12 +154,11 @@ Documentação complementar:
 
 ## Próximas etapas
 
-1. Middleware JWT e ACL de admin/seller;
-2. CRUD de produtos;
-3. CRUD/listagem de campanhas;
-4. Registro transacional de vendas;
-5. Cancelamento idempotente e estorno;
-6. Carteira e extrato;
-7. Testes de integração com concorrência;
-8. Frontend React;
-9. OpenAPI/Swagger e README final.
+1. CRUD de produtos, preservando inativação;
+2. CRUD/listagem de campanhas;
+3. Registro transacional de vendas;
+4. Cancelamento idempotente e estorno;
+5. Carteira e extrato com ownership do seller;
+6. Testes de integração com concorrência;
+7. Frontend React;
+8. OpenAPI/Swagger e README final.

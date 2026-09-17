@@ -1,0 +1,24 @@
+### Health check
+GET http://localhost:8080/health
+
+### Admin login
+# @name adminLogin
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@toro.local",
+  "password": "admin123"
+}
+
+### Protected admin route without token — expected 401
+GET http://localhost:8080/admin/ping
+
+### Protected admin route with seller token — expected 403
+# Execute seller login first and replace the value below.
+GET http://localhost:8080/admin/ping
+Authorization: Bearer <seller-token>
+
+### Protected admin route with admin token — expected 200
+GET http://localhost:8080/admin/ping
+Authorization: Bearer <admin-token>
