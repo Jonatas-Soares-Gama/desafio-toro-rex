@@ -28,6 +28,7 @@ services:
       DB_DATABASE: ${MYSQL_DATABASE:-toro}
       DB_USERNAME: ${MYSQL_USER:-toro}
       DB_PASSWORD: ${MYSQL_PASSWORD:-toro}
+      JWT_SECRET: ${JWT_SECRET:-development-secret-change-me-32-chars-min}
     depends_on:
       database:
         condition: service_healthy

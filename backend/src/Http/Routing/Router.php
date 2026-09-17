@@ -18,6 +18,12 @@ final class Router
         $this->routes['GET'][$path] = $handler;
     }
 
+    /** @param Closure(): JsonResponse $handler */
+    public function post(string $path, Closure $handler): void
+    {
+        $this->routes['POST'][$path] = $handler;
+    }
+
     public function dispatch(string $method, string $path): JsonResponse
     {
         $handler = $this->routes[$method][$path] ?? null;

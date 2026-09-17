@@ -1,7 +1,7 @@
 FROM composer:2.8 AS dependencies
 
 WORKDIR /app
-COPY composer.json ./
+COPY composer.json composer.lock ./
 RUN composer install \
     --no-interaction \
     --prefer-dist \
