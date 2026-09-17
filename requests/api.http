@@ -22,3 +22,33 @@ Authorization: Bearer <seller-token>
 ### Protected admin route with admin token — expected 200
 GET http://localhost:8080/admin/ping
 Authorization: Bearer <admin-token>
+
+### Create product — admin
+POST http://localhost:8080/products
+Authorization: Bearer <admin-token>
+Content-Type: application/json
+
+{
+  "name": "Produto HTTP",
+  "sku": "PROD-HTTP",
+  "points_per_unit": 100
+}
+
+### List products — admin
+GET http://localhost:8080/products
+Authorization: Bearer <admin-token>
+
+### Update product — admin
+PUT http://localhost:8080/products/1
+Authorization: Bearer <admin-token>
+Content-Type: application/json
+
+{
+  "name": "Produto HTTP atualizado",
+  "sku": "PROD-HTTP",
+  "points_per_unit": 125
+}
+
+### Inactivate product — admin
+DELETE http://localhost:8080/products/1
+Authorization: Bearer <admin-token>

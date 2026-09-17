@@ -39,6 +39,8 @@ Este arquivo registra o contexto necessário para retomar o desenvolvimento sem 
 - Especificação de autorização em `docs/specs/authorization.md`;
 - Testes unitários para principal, autenticação, ACL e integração do pipeline no router;
 - Teste HTTP real em `backend/bin/test-http.sh`, cobrindo `401`, `403` e `200`;
+- CRUD de produtos com `ProductRepository`, `ProductService` e inativação lógica;
+- Teste HTTP real do CRUD em `backend/bin/test-products-http.sh`;
 - `firebase/php-jwt` 7.1.1;
 - `composer.lock` versionado;
 - PHPUnit: 14 testes e 24 assertions passando;
@@ -54,7 +56,7 @@ seller2@toro.local / seller123
 
 ## Próxima tarefa imediata
 
-Iniciar o plano de criação do CRUD de produtos usando a ACL já concluída.
+Iniciar o plano de campanhas usando a ACL e o CRUD de produtos já concluídos.
 
 ## Backlog ordenado
 
@@ -63,7 +65,7 @@ Iniciar o plano de criação do CRUD de produtos usando a ACL já concluída.
 - [x] Parser de header e principal autenticado;
 - [x] Especificação e testes unitários de autorização;
 - [x] Teste HTTP de rota protegida;
-- [ ] CRUD de produtos;
+- [x] CRUD de produtos;
 - [ ] Campanhas;
 - [ ] Motor de pontuação;
 - [ ] Cancelamento e estorno;

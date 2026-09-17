@@ -13,6 +13,8 @@ final class Request
         private readonly array $headers = [],
         /** @var array<string, mixed> */
         private array $attributes = [],
+        /** @var array<string, mixed> */
+        private readonly array $body = [],
     ) {
     }
 
@@ -24,6 +26,19 @@ final class Request
     public function path(): string
     {
         return $this->path;
+    }
+
+    /** @return array<string, mixed> */
+    public function body(): array
+    {
+        return $this->body;
+    }
+
+    public function pathParameter(string $name): ?string
+    {
+        $parameters = $this->attribute('path_parameters');
+
+        return is_array($parameters) && isset($parameters[$name]) ? (string) $parameters[$name] : null;
     }
 
     public function header(string $name): ?string

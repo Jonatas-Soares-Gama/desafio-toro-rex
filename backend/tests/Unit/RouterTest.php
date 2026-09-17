@@ -28,4 +28,17 @@ final class RouterTest extends TestCase
         self::assertSame(404, $response->statusCode());
         self::assertSame(['error' => 'Route not found'], $response->payload());
     }
+
+    public function test_it_dispatches_a_route_with_a_path_parameter(): void
+    {
+        $router = new Router();
+        $router->put('/products/{id}', static fn(\App\Http\Request $request) => new JsonResponse([
+            'id' => $request->pathParameter('id'),
+        ]));
+
+        $response = $router->dispatch('PUT', '/products/42');
+
+        self::assertSame(200, $response->statusCode());
+        self::assertSame(['id' => '42'], $response->payload());
+    }
 }

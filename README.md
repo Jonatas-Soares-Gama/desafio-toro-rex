@@ -18,6 +18,7 @@ Já implementado:
 - ACL por papel com respostas `401` e `403`;
 - Pipeline de middlewares por rota no router;
 - Rota administrativa protegida `GET /admin/ping` para verificação HTTP;
+- CRUD de produtos com inativação lógica;
 - Especificação de autorização e testes unitários do principal, autenticação, ACL e pipeline;
 - Verificação de senha com `password_verify`;
 - `firebase/php-jwt` 7.x com `composer.lock` versionado.
@@ -107,6 +108,8 @@ backend/bin/test-http.sh
 
 O script usa a API Dockerizada e verifica a rota `GET /admin/ping` sem token (`401`), com token de seller (`403`) e com token de admin (`200`).
 
+O fluxo `backend/bin/test-products-http.sh` verifica autorização, validação, criação, listagem, edição, SKU duplicado e inativação idempotente contra a API e o MySQL Dockerizados.
+
 ## Testes
 
 Executar a suíte PHPUnit dentro do container:
@@ -125,6 +128,7 @@ O projeto também possui testes unitários para:
 - Autenticação de rotas com Bearer token;
 - Pipeline de middlewares do router, incluindo os cenários `401` e `403`.
 - Verificação HTTP real da rota protegida com `curl`.
+- CRUD de produtos e inativação lógica com teste HTTP real.
 
 ## Banco de dados
 

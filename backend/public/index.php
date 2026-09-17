@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\LoginController;
+use App\Http\Controllers\ProductController;
 use App\Http\Middleware\AuthenticationMiddleware;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Response\JsonResponse;
 use App\Http\Routing\Router;
 use App\Application\Auth\LoginService;
+use App\Application\Product\ProductService;
 use App\Infrastructure\Database\ConnectionFactory;
 use App\Infrastructure\Persistence\UserRepository;
+use App\Infrastructure\Persistence\ProductRepository;
 use App\Infrastructure\Security\JwtTokenService;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
@@ -30,6 +33,7 @@ $loginController = new LoginController(
     ),
 );
 $authentication = new AuthenticationMiddleware(new JwtTokenService($jwtSecret, 3600));
+$productController = new ProductController(new ProductService(new ProductRepository($connection)));
 
 $router->post('/auth/login', static function () use ($loginController) {
     $body = json_decode(file_get_contents('php://input') ?: '{}', true);
@@ -41,10 +45,25 @@ $router->get(
     static fn() => new JsonResponse(['status' => 'ok']),
     [$authentication, new RoleMiddleware('admin')],
 );
+$productMiddleware = [$authentication, new RoleMiddleware('admin')];
+$router->post('/products', $productController->create(...), $productMiddleware);
+$router->get('/products', $productController->list(...), $productMiddleware);
+$router->put('/products/{id}', $productController->update(...), $productMiddleware);
+$router->delete('/products/{id}', $productController->delete(...), $productMiddleware);
 
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $headers = function_exists('getallheaders') ? getallheaders() : [];
-$response = $router->dispatch($_SERVER['REQUEST_METHOD'] ?? 'GET', $path, $headers);
+$ifAuthorization = $_SERVER['HTTP_AUTHORIZATION'] ?? null;
+if ($ifAuthorization !== null && !isset($headers['Authorization'])) {
+    $headers['Authorization'] = $ifAuthorization;
+}
+$body = json_decode(file_get_contents('php://input') ?: '{}', true);
+$response = $router->dispatch(
+    $_SERVER['REQUEST_METHOD'] ?? 'GET',
+    $path,
+    $headers,
+    is_array($body) ? $body : [],
+);
 
 http_response_code($response->statusCode());
 header('Content-Type: application/json');
