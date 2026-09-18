@@ -28,4 +28,12 @@ final class UserRepository implements UserFinder
             'role' => (string) $user['role'],
         ];
     }
+
+    public function isSeller(int $id): bool
+    {
+        $statement = $this->connection->prepare('SELECT 1 FROM users WHERE id = :id AND role = \'seller\'');
+        $statement->execute(['id' => $id]);
+
+        return $statement->fetchColumn() !== false;
+    }
 }

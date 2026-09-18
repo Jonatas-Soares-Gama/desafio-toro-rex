@@ -76,7 +76,7 @@ final class ProductRepository
         return $this->find($id);
     }
 
-    private function find(int $id): Product
+    public function find(int $id): Product
     {
         $statement = $this->connection->prepare(
             'SELECT id, name, sku, points_per_unit, active, created_at FROM products WHERE id = :id',

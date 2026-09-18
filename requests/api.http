@@ -68,3 +68,17 @@ Content-Type: application/json
 ### List campaigns — admin
 GET http://localhost:8080/campaigns
 Authorization: Bearer <admin-token>
+
+### Create sale — admin
+POST http://localhost:8080/sales
+Authorization: Bearer <admin-token>
+Content-Type: application/json
+
+{
+  "external_id": "erp-sale-1001",
+  "campaign_id": 1,
+  "seller_id": 2,
+  "product_id": 1,
+  "quantity": 3,
+  "unit_value": "149.90"
+}

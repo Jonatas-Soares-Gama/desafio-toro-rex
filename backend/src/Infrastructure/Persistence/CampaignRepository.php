@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Persistence;
 
+use App\Application\Campaign\CampaignNotFoundException;
 use App\Domain\Campaign\Campaign;
 use PDO;
 
@@ -38,6 +39,30 @@ final class CampaignRepository
         );
 
         return array_map($this->map(...), $statement->fetchAll());
+    }
+
+    public function findForUpdate(int $id): Campaign
+    {
+        $statement = $this->connection->prepare(
+            'SELECT id, name, budget_total, budget_used, starts_at, ends_at, status, created_at
+             FROM campaigns WHERE id = :id FOR UPDATE',
+        );
+        $statement->execute(['id' => $id]);
+        $row = $statement->fetch();
+
+        if ($row === false) {
+            throw new CampaignNotFoundException('Campaign not found.');
+        }
+
+        return $this->map($row);
+    }
+
+    public function increaseBudgetUsed(int $id, int $points): void
+    {
+        $statement = $this->connection->prepare(
+            'UPDATE campaigns SET budget_used = budget_used + :points WHERE id = :id',
+        );
+        $statement->execute(['id' => $id, 'points' => $points]);
     }
 
     private function find(int $id): Campaign

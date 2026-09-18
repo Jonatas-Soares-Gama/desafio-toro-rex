@@ -42,6 +42,7 @@ Este arquivo registra o contexto necessário para retomar o desenvolvimento sem 
 - CRUD de produtos com `ProductRepository`, `ProductService` e inativação lógica;
 - Teste HTTP real do CRUD em `backend/bin/test-products-http.sh`;
 - Criação e listagem de campanhas com validação de período e orçamento;
+- Registro transacional de vendas com cálculo de pontos, idempotência e crédito no ledger;
 - Teste HTTP real de campanhas em `backend/bin/test-campaigns-http.sh`;
 - `firebase/php-jwt` 7.1.1;
 - `composer.lock` versionado;
@@ -70,7 +71,7 @@ frontend React será iniciado somente após essas quatro etapas de backend.
 - [x] Teste HTTP de rota protegida;
 - [x] CRUD de produtos;
 - [x] Campanhas;
-- [ ] Motor de pontuação;
+- [x] Motor de pontuação;
 - [ ] Cancelamento e estorno;
 - [ ] Carteira/extrato;
 - [ ] Testes de concorrência;

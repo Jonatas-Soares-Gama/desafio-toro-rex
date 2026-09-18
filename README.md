@@ -20,6 +20,7 @@ Já implementado:
 - Rota administrativa protegida `GET /admin/ping` para verificação HTTP;
 - CRUD de produtos com inativação lógica;
 - Criação e listagem de campanhas com validação de período e orçamento;
+- Registro transacional de vendas com cálculo de pontos, idempotência e consumo seguro de verba;
 - Especificação de autorização e testes unitários do principal, autenticação, ACL e pipeline;
 - Verificação de senha com `password_verify`;
 - `firebase/php-jwt` 7.x com `composer.lock` versionado.
@@ -99,7 +100,22 @@ Credenciais inválidas retornam `401`. Campos ausentes ou inválidos retornam `4
 
 O token contém `sub`, `role`, `iat` e `exp`. O segredo é configurado por `JWT_SECRET` no ambiente; o Compose fornece um valor de desenvolvimento padrão. Em qualquer ambiente real, substitua esse valor por um segredo aleatório com pelo menos 32 caracteres.
 
-As rotas de vendas, cancelamento e carteira ainda estão em implementação.
+O registro de vendas está disponível para administradores. Cancelamento, estorno
+e carteira ainda estão em implementação.
+
+### Registro de venda
+
+```bash
+curl -i -X POST http://localhost:8080/sales \
+  -H "Authorization: Bearer <admin-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"external_id":"erp-sale-1001","campaign_id":1,"seller_id":2,"product_id":1,"quantity":3,"unit_value":"149.90"}'
+```
+
+Os pontos são calculados como `quantity * product.points_per_unit`. A venda
+rejeita integralmente quando não há verba suficiente. Venda, crédito no ledger
+e atualização de `budget_used` são persistidos na mesma transação. Repetir o
+mesmo `external_id` retorna a venda existente sem pontuar novamente.
 
 ### Verificação de autorização
 
@@ -112,6 +128,9 @@ O script usa a API Dockerizada e verifica a rota `GET /admin/ping` sem token (`4
 O fluxo `backend/bin/test-products-http.sh` verifica autorização, validação, criação, listagem, edição, SKU duplicado e inativação idempotente contra a API e o MySQL Dockerizados.
 
 O fluxo `backend/bin/test-campaigns-http.sh` verifica autorização, validação, criação e listagem de campanhas contra a API e o MySQL Dockerizados.
+
+O fluxo `backend/bin/test-sales-http.sh` verifica autorização, validação,
+criação, idempotência, conflito de identificador e verba insuficiente.
 
 ## Testes
 
@@ -133,6 +152,7 @@ O projeto também possui testes unitários para:
 - Verificação HTTP real da rota protegida com `curl`.
 - CRUD de produtos e inativação lógica com teste HTTP real.
 - Criação e listagem de campanhas com teste HTTP real.
+- Registro de vendas e regras transacionais pelo teste HTTP Dockerizado.
 
 ## Banco de dados
 
@@ -140,7 +160,8 @@ O projeto também possui testes unitários para:
 - Migration e seed: `backend/bin/migrate.php`;
 - Conexão PDO: `backend/src/Infrastructure/Database/ConnectionFactory.php`.
 
-O saldo futuro da carteira será calculado pelo ledger. Pontos e atualização de verba deverão ser persistidos na mesma transação.
+O saldo da carteira será calculado pelo ledger. Pontos e atualização de verba
+da venda são persistidos na mesma transação.
 
 ## Arquitetura
 
@@ -162,8 +183,7 @@ Documentação complementar:
 
 ## Próximas etapas
 
-1. Registro transacional de vendas;
-2. Cancelamento idempotente e estorno;
+1. Cancelamento idempotente e estorno;
 3. Carteira e extrato com ownership do seller;
 4. Testes de integração com concorrência;
 5. Frontend React;
