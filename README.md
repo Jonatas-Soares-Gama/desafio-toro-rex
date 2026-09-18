@@ -162,9 +162,9 @@ Documentação complementar:
 
 ## Próximas etapas
 
-1. Frontend React para testar os fluxos já implementados;
-2. Registro transacional de vendas;
-3. Cancelamento idempotente e estorno;
-4. Carteira e extrato com ownership do seller;
-5. Testes de integração com concorrência;
+1. Registro transacional de vendas;
+2. Cancelamento idempotente e estorno;
+3. Carteira e extrato com ownership do seller;
+4. Testes de integração com concorrência;
+5. Frontend React;
 6. OpenAPI/Swagger e README final.

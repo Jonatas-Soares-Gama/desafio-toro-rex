@@ -5,7 +5,8 @@ Status: concluído.
 ## Objetivo
 
 Implementar a criação e a listagem administrativa de campanhas. O frontend
-React será iniciado somente depois que esta task estiver concluída.
+React será iniciado somente depois que vendas, cancelamento e carteira também
+estiverem concluídos.
 
 ## Escopo
 
@@ -40,7 +41,8 @@ Fora deste plano:
 7. Executar PHPUnit e o teste HTTP real;
 8. Atualizar documentação e marcar o plano como concluído;
 9. Fazer commit e push;
-10. Após a conclusão, iniciar separadamente o plano do frontend React.
+10. Após concluir vendas, cancelamento e carteira, iniciar separadamente o plano
+    do frontend React.
 
 ## Definição de pronto
 

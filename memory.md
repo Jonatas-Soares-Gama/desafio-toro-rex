@@ -58,7 +58,8 @@ seller2@toro.local / seller123
 
 ## Próxima tarefa imediata
 
-Iniciar o plano do frontend React para testar a plataforma com login, produtos e campanhas.
+Implementar o motor transacional de vendas, depois cancelamento e carteira; o
+frontend React será iniciado somente após essas quatro etapas de backend.
 
 ## Backlog ordenado
 
@@ -73,7 +74,7 @@ Iniciar o plano do frontend React para testar a plataforma com login, produtos e
 - [ ] Cancelamento e estorno;
 - [ ] Carteira/extrato;
 - [ ] Testes de concorrência;
-- [ ] Frontend React;
+- [ ] Frontend React (após vendas, cancelamento e carteira);
 - [x] Requests versionados em `requests/api.http`;
 - [ ] OpenAPI/Swagger;
 - [ ] README final com limitações e próximos passos.
