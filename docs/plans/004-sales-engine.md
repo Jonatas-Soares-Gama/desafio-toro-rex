@@ -99,6 +99,6 @@ Fora deste plano:
 
 ## Evidências
 
-- `docker compose run --rm --no-deps backend vendor/bin/phpunit` → 25 testes, 39 assertions;
+- `docker compose run --rm --no-deps backend vendor/bin/phpunit` → 29 testes, 44 assertions;
 - `backend/bin/test-sales-http.sh` → verificou `401`, `403`, `422`, `201`,
   `200` idempotente, `409` por conflito e rejeição por verba insuficiente.

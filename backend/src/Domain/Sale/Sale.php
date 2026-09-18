@@ -6,6 +6,15 @@ namespace App\Domain\Sale;
 
 final readonly class Sale
 {
+    public static function calculatePoints(int $quantity, int $pointsPerUnit): int
+    {
+        if ($quantity <= 0 || $pointsPerUnit <= 0) {
+            throw new \InvalidArgumentException('Sale points inputs must be positive.');
+        }
+
+        return $quantity * $pointsPerUnit;
+    }
+
     public function __construct(
         public int $id,
         public string $externalId,

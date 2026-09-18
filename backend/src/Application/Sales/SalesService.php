@@ -65,7 +65,7 @@ final class SalesService
                 throw new SaleValidationException('Campaign is not available.');
             }
 
-            $points = $quantity * $product->pointsPerUnit;
+            $points = Sale::calculatePoints($quantity, $product->pointsPerUnit);
             if ($campaign->budgetUsed + $points > $campaign->budgetTotal) {
                 throw new SaleValidationException('Campaign budget is insufficient.');
             }

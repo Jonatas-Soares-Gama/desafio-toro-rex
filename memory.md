@@ -46,7 +46,7 @@ Este arquivo registra o contexto necessário para retomar o desenvolvimento sem 
 - Teste HTTP real de campanhas em `backend/bin/test-campaigns-http.sh`;
 - `firebase/php-jwt` 7.1.1;
 - `composer.lock` versionado;
-- PHPUnit: 25 testes e 39 assertions passando;
+- PHPUnit: 29 testes e 44 assertions passando;
 - Verificação HTTP Dockerizada passando.
 
 ## Credenciais locais
