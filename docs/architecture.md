@@ -30,6 +30,19 @@ O caso de uso de registro de venda coordena a transação completa:
 
 Qualquer falha executa `ROLLBACK`.
 
+O cancelamento segue a mesma garantia transacional:
+
+1. Bloqueia a venda por `external_id` com `SELECT ... FOR UPDATE`;
+2. verifica a janela de 30 dias e lê os pontos do crédito original;
+3. bloqueia a campanha relacionada;
+4. marca a venda como cancelada;
+5. cria o débito no ledger;
+6. reduz `budget_used` pelos mesmos pontos;
+7. confirma tudo com `COMMIT`.
+
+Uma venda já cancelada é um no-op idempotente. Uma venda fora da janela retorna
+`422` sem alterar status, ledger ou verba.
+
 ## Frontend
 
 O React será organizado por feature: autenticação, produtos, campanhas, vendas e carteira. A camada HTTP centraliza token, respostas de erro e redirecionamento para login.

@@ -65,6 +65,24 @@ final class CampaignRepository
         $statement->execute(['id' => $id, 'points' => $points]);
     }
 
+    public function decreaseBudgetUsed(int $id, int $points): void
+    {
+        $statement = $this->connection->prepare(
+            'UPDATE campaigns
+             SET budget_used = budget_used - :decrease_points
+             WHERE id = :id AND budget_used >= :minimum_points',
+        );
+        $statement->execute([
+            'id' => $id,
+            'decrease_points' => $points,
+            'minimum_points' => $points,
+        ]);
+
+        if ($statement->rowCount() !== 1) {
+            throw new \RuntimeException('Campaign budget cannot be decreased.');
+        }
+    }
+
     private function find(int $id): Campaign
     {
         $statement = $this->connection->prepare(

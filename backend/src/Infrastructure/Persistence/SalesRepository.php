@@ -56,6 +56,48 @@ final class SalesRepository
         ]);
     }
 
+    public function findCreditPoints(int $saleId): ?int
+    {
+        $statement = $this->connection->prepare(
+            'SELECT points FROM wallet_entries
+             WHERE sale_id = :sale_id AND type = \'credit\' FOR UPDATE',
+        );
+        $statement->execute(['sale_id' => $saleId]);
+        $points = $statement->fetchColumn();
+
+        return $points === false ? null : (int) $points;
+    }
+
+    public function markCanceled(int $saleId): Sale
+    {
+        $statement = $this->connection->prepare(
+            'UPDATE sales SET status = \'canceled\'
+             WHERE id = :id AND status = \'approved\'',
+        );
+        $statement->execute(['id' => $saleId]);
+
+        if ($statement->rowCount() !== 1) {
+            throw new \RuntimeException('Sale could not be canceled.');
+        }
+
+        return $this->findById($saleId);
+    }
+
+    public function createDebit(Sale $sale, int $points): void
+    {
+        $statement = $this->connection->prepare(
+            'INSERT INTO wallet_entries (seller_id, campaign_id, sale_id, type, points, description)
+             VALUES (:seller_id, :campaign_id, :sale_id, \'debit\', :points, :description)',
+        );
+        $statement->execute([
+            'seller_id' => $sale->sellerId,
+            'campaign_id' => $sale->campaignId,
+            'sale_id' => $sale->id,
+            'points' => $points,
+            'description' => 'Cancellation of sale ' . $sale->externalId,
+        ]);
+    }
+
     private function find(string $externalId, bool $forUpdate): ?Sale
     {
         $sql = 'SELECT id, external_id, campaign_id, seller_id, product_id, quantity, unit_value, status, created_at

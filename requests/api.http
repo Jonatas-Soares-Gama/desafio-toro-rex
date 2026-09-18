@@ -82,3 +82,7 @@ Content-Type: application/json
   "quantity": 3,
   "unit_value": "149.90"
 }
+
+### Cancel sale — admin, before 30 days
+POST http://localhost:8080/sales/erp-sale-1001/cancel
+Authorization: Bearer <admin-token>

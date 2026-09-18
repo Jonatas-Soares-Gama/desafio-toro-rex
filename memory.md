@@ -43,10 +43,12 @@ Este arquivo registra o contexto necessário para retomar o desenvolvimento sem 
 - Teste HTTP real do CRUD em `backend/bin/test-products-http.sh`;
 - Criação e listagem de campanhas com validação de período e orçamento;
 - Registro transacional de vendas com cálculo de pontos, idempotência e crédito no ledger;
+- Cancelamento idempotente com estorno de pontos, janela de 30 dias e devolução transacional de verba;
 - Teste HTTP real de campanhas em `backend/bin/test-campaigns-http.sh`;
+- Teste HTTP real de cancelamento em `backend/bin/test-cancellations-http.sh`;
 - `firebase/php-jwt` 7.1.1;
 - `composer.lock` versionado;
-- PHPUnit: 29 testes e 44 assertions passando;
+- PHPUnit: 31 testes e 47 assertions passando;
 - Verificação HTTP Dockerizada passando.
 
 ## Credenciais locais
@@ -59,8 +61,18 @@ seller2@toro.local / seller123
 
 ## Próxima tarefa imediata
 
-Implementar o motor transacional de vendas, depois cancelamento e carteira; o
-frontend React será iniciado somente após essas quatro etapas de backend.
+Implementar carteira e extrato do seller. A spec, o plano e as decisões do
+cancelamento/estorno foram concluídos em:
+
+- `docs/specs/cancellations.md`;
+- `docs/plans/005-sale-cancellation.md`;
+- `docs/decisions/005-cancellation-points-source.md`;
+- `docs/decisions/006-cancellation-window.md`.
+
+Regra implementada: venda aprovada só pode ser cancelada antes de completar 30
+dias desde `sales.created_at`; no limite ou depois retorna `422`.
+
+O frontend React será iniciado somente após vendas, cancelamento e carteira.
 
 ## Backlog ordenado
 
@@ -72,7 +84,7 @@ frontend React será iniciado somente após essas quatro etapas de backend.
 - [x] CRUD de produtos;
 - [x] Campanhas;
 - [x] Motor de pontuação;
-- [ ] Cancelamento e estorno;
+- [x] Cancelamento e estorno com janela de 30 dias;
 - [ ] Carteira/extrato;
 - [ ] Testes de concorrência;
 - [ ] Frontend React (após vendas, cancelamento e carteira);

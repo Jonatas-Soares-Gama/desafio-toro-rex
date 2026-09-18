@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\Sale;
 
+use DateTimeImmutable;
+use DateTimeZone;
+
 final readonly class Sale
 {
     public static function calculatePoints(int $quantity, int $pointsPerUnit): int
@@ -13,6 +16,22 @@ final readonly class Sale
         }
 
         return $quantity * $pointsPerUnit;
+    }
+
+    public function isWithinCancellationWindow(DateTimeImmutable $now): bool
+    {
+        $createdAt = DateTimeImmutable::createFromFormat(
+            '!Y-m-d H:i:s',
+            $this->createdAt,
+            new DateTimeZone('UTC'),
+        );
+        $errors = DateTimeImmutable::getLastErrors();
+
+        if ($createdAt === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+            throw new \InvalidArgumentException('Sale creation date is invalid.');
+        }
+
+        return $now < $createdAt->modify('+30 days');
     }
 
     public function __construct(

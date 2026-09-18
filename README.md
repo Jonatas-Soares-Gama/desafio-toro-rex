@@ -21,6 +21,7 @@ Já implementado:
 - CRUD de produtos com inativação lógica;
 - Criação e listagem de campanhas com validação de período e orçamento;
 - Registro transacional de vendas com cálculo de pontos, idempotência e consumo seguro de verba;
+- Cancelamento idempotente com estorno de pontos e devolução transacional de verba;
 - Especificação de autorização e testes unitários do principal, autenticação, ACL e pipeline;
 - Verificação de senha com `password_verify`;
 - `firebase/php-jwt` 7.x com `composer.lock` versionado.
@@ -100,8 +101,9 @@ Credenciais inválidas retornam `401`. Campos ausentes ou inválidos retornam `4
 
 O token contém `sub`, `role`, `iat` e `exp`. O segredo é configurado por `JWT_SECRET` no ambiente; o Compose fornece um valor de desenvolvimento padrão. Em qualquer ambiente real, substitua esse valor por um segredo aleatório com pelo menos 32 caracteres.
 
-O registro de vendas está disponível para administradores. Cancelamento, estorno
-e carteira ainda estão em implementação.
+O registro de vendas e o cancelamento com estorno estão disponíveis para
+administradores. A venda aprovada só pode ser cancelada antes de completar 30
+dias desde `created_at`; o limite e qualquer instante posterior retornam `422`.
 
 ### Registro de venda
 
@@ -117,6 +119,18 @@ rejeita integralmente quando não há verba suficiente. Venda, crédito no ledge
 e atualização de `budget_used` são persistidos na mesma transação. Repetir o
 mesmo `external_id` retorna a venda existente sem pontuar novamente.
 
+### Cancelamento e estorno
+
+```bash
+curl -i -X POST http://localhost:8080/sales/erp-sale-1001/cancel \
+  -H "Authorization: Bearer <admin-token>"
+```
+
+O cancelamento marca a venda como `canceled`, cria um débito com os pontos do
+crédito original e devolve esses pontos à verba da campanha na mesma transação.
+Repetir a chamada retorna `200` sem criar outro débito. Uma venda inexistente
+retorna `404`; uma venda aprovada fora da janela de 30 dias retorna `422`.
+
 ### Verificação de autorização
 
 ```bash
@@ -131,6 +145,9 @@ O fluxo `backend/bin/test-campaigns-http.sh` verifica autorização, validação
 
 O fluxo `backend/bin/test-sales-http.sh` verifica autorização, validação,
 criação, idempotência, conflito de identificador e verba insuficiente.
+
+O fluxo `backend/bin/test-cancellations-http.sh` verifica autorização,
+cancelamento, estorno, venda inexistente e repetição idempotente.
 
 ## Testes
 
@@ -153,6 +170,7 @@ O projeto também possui testes unitários para:
 - CRUD de produtos e inativação lógica com teste HTTP real.
 - Criação e listagem de campanhas com teste HTTP real.
 - Registro de vendas e regras transacionais pelo teste HTTP Dockerizado.
+- Cancelamento, estorno e idempotência pelo teste HTTP Dockerizado.
 
 ## Banco de dados
 
@@ -183,8 +201,7 @@ Documentação complementar:
 
 ## Próximas etapas
 
-1. Cancelamento idempotente e estorno;
-3. Carteira e extrato com ownership do seller;
-4. Testes de integração com concorrência;
-5. Frontend React;
-6. OpenAPI/Swagger e README final.
+1. Carteira e extrato com ownership do seller;
+2. Testes de integração com concorrência;
+3. Frontend React;
+4. OpenAPI/Swagger e README final.

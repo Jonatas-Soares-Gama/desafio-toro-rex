@@ -109,6 +109,79 @@ final class SalesService
         }
     }
 
+    /** @return array{sale: Sale, reversedPoints: int} */
+    public function cancel(string $externalId): array
+    {
+        $externalId = trim($externalId);
+        if ($externalId === '' || strlen($externalId) > 120) {
+            throw new SaleValidationException('Sale external_id is invalid.');
+        }
+
+        $this->connection->beginTransaction();
+
+        try {
+            $sale = $this->sales->findByExternalIdForUpdate($externalId);
+            if ($sale === null) {
+                throw new SaleNotFoundException('Sale not found.');
+            }
+
+            if ($sale->status === 'canceled') {
+                $points = $this->sales->findCreditPoints($sale->id);
+                if ($points === null || $points <= 0) {
+                    throw new SaleValidationException('Sale credit is invalid.');
+                }
+
+                $this->connection->commit();
+
+                return ['sale' => $sale, 'reversedPoints' => $points];
+            }
+
+            try {
+                $withinWindow = $sale->isWithinCancellationWindow(
+                    new \DateTimeImmutable('now', new \DateTimeZone('UTC')),
+                );
+            } catch (\InvalidArgumentException $exception) {
+                throw new SaleValidationException('Sale creation date is invalid.', 0, $exception);
+            }
+
+            if (!$withinWindow) {
+                throw new SaleValidationException('Sale cancellation window has expired.');
+            }
+
+            $points = $this->sales->findCreditPoints($sale->id);
+            if ($points === null || $points <= 0) {
+                throw new SaleValidationException('Sale credit is invalid.');
+            }
+
+            $campaign = $this->campaigns->findForUpdate($sale->campaignId);
+            if ($campaign->budgetUsed < $points) {
+                throw new SaleValidationException('Campaign budget is inconsistent.');
+            }
+
+            $canceledSale = $this->sales->markCanceled($sale->id);
+            $this->sales->createDebit($canceledSale, $points);
+            $this->campaigns->decreaseBudgetUsed($sale->campaignId, $points);
+            $this->connection->commit();
+
+            return ['sale' => $canceledSale, 'reversedPoints' => $points];
+        } catch (SaleNotFoundException|SaleValidationException $exception) {
+            if ($this->connection->inTransaction()) {
+                $this->connection->rollBack();
+            }
+            throw $exception;
+        } catch (CampaignNotFoundException $exception) {
+            if ($this->connection->inTransaction()) {
+                $this->connection->rollBack();
+            }
+            throw new SaleValidationException('Campaign not found.', 0, $exception);
+        } catch (\Throwable $exception) {
+            if ($this->connection->inTransaction()) {
+                $this->connection->rollBack();
+            }
+            throw $exception;
+        }
+    }
+
     /** @return array{0: string, 1: int, 2: int, 3: int, 4: int, 5: string} */
     private function validatedInput(array $input): array
     {

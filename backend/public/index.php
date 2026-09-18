@@ -67,6 +67,7 @@ $router->delete('/products/{id}', $productController->delete(...), $productMiddl
 $router->post('/campaigns', $campaignController->create(...), $productMiddleware);
 $router->get('/campaigns', $campaignController->list(...), $productMiddleware);
 $router->post('/sales', $salesController->create(...), $productMiddleware);
+$router->post('/sales/{external_id}/cancel', $salesController->cancel(...), $productMiddleware);
 
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $headers = function_exists('getallheaders') ? getallheaders() : [];
