@@ -19,6 +19,7 @@ Já implementado:
 - Pipeline de middlewares por rota no router;
 - Rota administrativa protegida `GET /admin/ping` para verificação HTTP;
 - CRUD de produtos com inativação lógica;
+- Criação e listagem de campanhas com validação de período e orçamento;
 - Especificação de autorização e testes unitários do principal, autenticação, ACL e pipeline;
 - Verificação de senha com `password_verify`;
 - `firebase/php-jwt` 7.x com `composer.lock` versionado.
@@ -98,7 +99,7 @@ Credenciais inválidas retornam `401`. Campos ausentes ou inválidos retornam `4
 
 O token contém `sub`, `role`, `iat` e `exp`. O segredo é configurado por `JWT_SECRET` no ambiente; o Compose fornece um valor de desenvolvimento padrão. Em qualquer ambiente real, substitua esse valor por um segredo aleatório com pelo menos 32 caracteres.
 
-As rotas de negócio ainda estão em implementação. O middleware de autenticação e a ACL já estão prontos para serem aplicados às rotas administrativas e de carteira.
+As rotas de vendas, cancelamento e carteira ainda estão em implementação.
 
 ### Verificação de autorização
 
@@ -109,6 +110,8 @@ backend/bin/test-http.sh
 O script usa a API Dockerizada e verifica a rota `GET /admin/ping` sem token (`401`), com token de seller (`403`) e com token de admin (`200`).
 
 O fluxo `backend/bin/test-products-http.sh` verifica autorização, validação, criação, listagem, edição, SKU duplicado e inativação idempotente contra a API e o MySQL Dockerizados.
+
+O fluxo `backend/bin/test-campaigns-http.sh` verifica autorização, validação, criação e listagem de campanhas contra a API e o MySQL Dockerizados.
 
 ## Testes
 
@@ -129,6 +132,7 @@ O projeto também possui testes unitários para:
 - Pipeline de middlewares do router, incluindo os cenários `401` e `403`.
 - Verificação HTTP real da rota protegida com `curl`.
 - CRUD de produtos e inativação lógica com teste HTTP real.
+- Criação e listagem de campanhas com teste HTTP real.
 
 ## Banco de dados
 
@@ -158,11 +162,9 @@ Documentação complementar:
 
 ## Próximas etapas
 
-1. CRUD de produtos, preservando inativação;
-2. CRUD/listagem de campanhas;
-3. Registro transacional de vendas;
-4. Cancelamento idempotente e estorno;
-5. Carteira e extrato com ownership do seller;
-6. Testes de integração com concorrência;
-7. Frontend React;
-8. OpenAPI/Swagger e README final.
+1. Frontend React para testar os fluxos já implementados;
+2. Registro transacional de vendas;
+3. Cancelamento idempotente e estorno;
+4. Carteira e extrato com ownership do seller;
+5. Testes de integração com concorrência;
+6. OpenAPI/Swagger e README final.

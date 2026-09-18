@@ -41,9 +41,11 @@ Este arquivo registra o contexto necessário para retomar o desenvolvimento sem 
 - Teste HTTP real em `backend/bin/test-http.sh`, cobrindo `401`, `403` e `200`;
 - CRUD de produtos com `ProductRepository`, `ProductService` e inativação lógica;
 - Teste HTTP real do CRUD em `backend/bin/test-products-http.sh`;
+- Criação e listagem de campanhas com validação de período e orçamento;
+- Teste HTTP real de campanhas em `backend/bin/test-campaigns-http.sh`;
 - `firebase/php-jwt` 7.1.1;
 - `composer.lock` versionado;
-- PHPUnit: 14 testes e 24 assertions passando;
+- PHPUnit: 25 testes e 39 assertions passando;
 - Verificação HTTP Dockerizada passando.
 
 ## Credenciais locais
@@ -56,7 +58,7 @@ seller2@toro.local / seller123
 
 ## Próxima tarefa imediata
 
-Iniciar o plano de campanhas usando a ACL e o CRUD de produtos já concluídos.
+Iniciar o plano do frontend React para testar a plataforma com login, produtos e campanhas.
 
 ## Backlog ordenado
 
@@ -66,13 +68,13 @@ Iniciar o plano de campanhas usando a ACL e o CRUD de produtos já concluídos.
 - [x] Especificação e testes unitários de autorização;
 - [x] Teste HTTP de rota protegida;
 - [x] CRUD de produtos;
-- [ ] Campanhas;
+- [x] Campanhas;
 - [ ] Motor de pontuação;
 - [ ] Cancelamento e estorno;
 - [ ] Carteira/extrato;
 - [ ] Testes de concorrência;
 - [ ] Frontend React;
-- [ ] Requests versionados em `requests/api.http`;
+- [x] Requests versionados em `requests/api.http`;
 - [ ] OpenAPI/Swagger;
 - [ ] README final com limitações e próximos passos.
 

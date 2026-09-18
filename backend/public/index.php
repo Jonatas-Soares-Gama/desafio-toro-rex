@@ -5,15 +5,18 @@ declare(strict_types=1);
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\CampaignController;
 use App\Http\Middleware\AuthenticationMiddleware;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Response\JsonResponse;
 use App\Http\Routing\Router;
 use App\Application\Auth\LoginService;
 use App\Application\Product\ProductService;
+use App\Application\Campaign\CampaignService;
 use App\Infrastructure\Database\ConnectionFactory;
 use App\Infrastructure\Persistence\UserRepository;
 use App\Infrastructure\Persistence\ProductRepository;
+use App\Infrastructure\Persistence\CampaignRepository;
 use App\Infrastructure\Security\JwtTokenService;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
@@ -34,6 +37,7 @@ $loginController = new LoginController(
 );
 $authentication = new AuthenticationMiddleware(new JwtTokenService($jwtSecret, 3600));
 $productController = new ProductController(new ProductService(new ProductRepository($connection)));
+$campaignController = new CampaignController(new CampaignService(new CampaignRepository($connection)));
 
 $router->post('/auth/login', static function () use ($loginController) {
     $body = json_decode(file_get_contents('php://input') ?: '{}', true);
@@ -50,6 +54,8 @@ $router->post('/products', $productController->create(...), $productMiddleware);
 $router->get('/products', $productController->list(...), $productMiddleware);
 $router->put('/products/{id}', $productController->update(...), $productMiddleware);
 $router->delete('/products/{id}', $productController->delete(...), $productMiddleware);
+$router->post('/campaigns', $campaignController->create(...), $productMiddleware);
+$router->get('/campaigns', $campaignController->list(...), $productMiddleware);
 
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $headers = function_exists('getallheaders') ? getallheaders() : [];

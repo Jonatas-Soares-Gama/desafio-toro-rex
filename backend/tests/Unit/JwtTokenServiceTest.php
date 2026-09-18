@@ -27,7 +27,9 @@ final class JwtTokenServiceTest extends TestCase
     public function test_it_rejects_a_tampered_token(): void
     {
         $token = $this->service->issue(7, 'seller');
-        $tamperedToken = substr($token, 0, -1) . 'x';
+        [$header, $payload, $signature] = explode('.', $token);
+        $tamperedSignature = ($signature[0] === 'a' ? 'b' : 'a') . substr($signature, 1);
+        $tamperedToken = implode('.', [$header, $payload, $tamperedSignature]);
 
         $this->expectException(\Throwable::class);
 
