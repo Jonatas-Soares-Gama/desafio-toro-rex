@@ -98,6 +98,35 @@ final class SalesRepository
         ]);
     }
 
+    /** @return list<array{id: int, campaign_id: int, sale_id: int, type: string, points: int, description: string, created_at: string}> */
+    public function findWalletEntries(int $sellerId): array
+    {
+        if ($sellerId <= 0) {
+            throw new \InvalidArgumentException('Seller ID must be positive.');
+        }
+
+        $statement = $this->connection->prepare(
+            'SELECT id, campaign_id, sale_id, type, points, description, created_at
+             FROM wallet_entries
+             WHERE seller_id = :seller_id
+             ORDER BY created_at DESC, id DESC',
+        );
+        $statement->execute(['seller_id' => $sellerId]);
+
+        return array_map(
+            static fn(array $row): array => [
+                'id' => (int) $row['id'],
+                'campaign_id' => (int) $row['campaign_id'],
+                'sale_id' => (int) $row['sale_id'],
+                'type' => (string) $row['type'],
+                'points' => (int) $row['points'],
+                'description' => (string) $row['description'],
+                'created_at' => (string) $row['created_at'],
+            ],
+            $statement->fetchAll(),
+        );
+    }
+
     private function find(string $externalId, bool $forUpdate): ?Sale
     {
         $sql = 'SELECT id, external_id, campaign_id, seller_id, product_id, quantity, unit_value, status, created_at

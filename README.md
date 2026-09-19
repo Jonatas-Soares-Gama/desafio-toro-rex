@@ -22,6 +22,7 @@ Já implementado:
 - Criação e listagem de campanhas com validação de período e orçamento;
 - Registro transacional de vendas com cálculo de pontos, idempotência e consumo seguro de verba;
 - Cancelamento idempotente com estorno de pontos e devolução transacional de verba;
+- Carteira do seller com saldo derivado do ledger e extrato protegido por ownership;
 - Especificação de autorização e testes unitários do principal, autenticação, ACL e pipeline;
 - Verificação de senha com `password_verify`;
 - `firebase/php-jwt` 7.x com `composer.lock` versionado.
@@ -131,6 +132,17 @@ crédito original e devolve esses pontos à verba da campanha na mesma transaç�
 Repetir a chamada retorna `200` sem criar outro débito. Uma venda inexistente
 retorna `404`; uma venda aprovada fora da janela de 30 dias retorna `422`.
 
+### Carteira do seller
+
+```bash
+curl -i http://localhost:8080/me/wallet \
+  -H "Authorization: Bearer <seller-token>"
+```
+
+A resposta contém `balance` e `entries`. O saldo é calculado como créditos
+menos débitos do ledger; o endpoint usa o seller do JWT e não aceita um
+`seller_id` arbitrário. Admin recebe `403`.
+
 ### Verificação de autorização
 
 ```bash
@@ -148,6 +160,9 @@ criação, idempotência, conflito de identificador e verba insuficiente.
 
 O fluxo `backend/bin/test-cancellations-http.sh` verifica autorização,
 cancelamento, estorno, venda inexistente e repetição idempotente.
+
+O fluxo `backend/bin/test-wallet-http.sh` verifica autorização, cálculo do
+saldo, ownership entre sellers, crédito, estorno e repetição idempotente.
 
 ## Testes
 
@@ -171,6 +186,7 @@ O projeto também possui testes unitários para:
 - Criação e listagem de campanhas com teste HTTP real.
 - Registro de vendas e regras transacionais pelo teste HTTP Dockerizado.
 - Cancelamento, estorno e idempotência pelo teste HTTP Dockerizado.
+- Carteira, extrato, ownership e saldo derivado do ledger pelo teste HTTP Dockerizado.
 
 ## Banco de dados
 
@@ -178,8 +194,8 @@ O projeto também possui testes unitários para:
 - Migration e seed: `backend/bin/migrate.php`;
 - Conexão PDO: `backend/src/Infrastructure/Database/ConnectionFactory.php`.
 
-O saldo da carteira será calculado pelo ledger. Pontos e atualização de verba
-da venda são persistidos na mesma transação.
+O saldo da carteira é calculado pelo ledger. Pontos e atualização de verba da
+venda são persistidos na mesma transação.
 
 ## Arquitetura
 
@@ -201,7 +217,6 @@ Documentação complementar:
 
 ## Próximas etapas
 
-1. Carteira e extrato com ownership do seller;
-2. Testes de integração com concorrência;
-3. Frontend React;
-4. OpenAPI/Swagger e README final.
+1. Testes de integração com concorrência;
+2. Frontend React;
+3. OpenAPI/Swagger e README final.

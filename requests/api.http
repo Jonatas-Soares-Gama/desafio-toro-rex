@@ -86,3 +86,17 @@ Content-Type: application/json
 ### Cancel sale — admin, before 30 days
 POST http://localhost:8080/sales/erp-sale-1001/cancel
 Authorization: Bearer <admin-token>
+
+### Seller login
+# @name sellerLogin
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+  "email": "seller1@toro.local",
+  "password": "seller123"
+}
+
+### Seller wallet — own ledger
+GET http://localhost:8080/me/wallet
+Authorization: Bearer <seller-token>

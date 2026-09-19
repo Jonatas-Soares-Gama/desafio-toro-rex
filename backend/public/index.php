@@ -7,6 +7,7 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\SalesController;
+use App\Http\Controllers\WalletController;
 use App\Http\Middleware\AuthenticationMiddleware;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Response\JsonResponse;
@@ -15,6 +16,7 @@ use App\Application\Auth\LoginService;
 use App\Application\Product\ProductService;
 use App\Application\Campaign\CampaignService;
 use App\Application\Sales\SalesService;
+use App\Application\Wallet\WalletService;
 use App\Infrastructure\Database\ConnectionFactory;
 use App\Infrastructure\Persistence\UserRepository;
 use App\Infrastructure\Persistence\ProductRepository;
@@ -41,13 +43,15 @@ $loginController = new LoginController(
 $authentication = new AuthenticationMiddleware(new JwtTokenService($jwtSecret, 3600));
 $productController = new ProductController(new ProductService(new ProductRepository($connection)));
 $campaignController = new CampaignController(new CampaignService(new CampaignRepository($connection)));
+$salesRepository = new SalesRepository($connection);
 $salesController = new SalesController(new SalesService(
     $connection,
-    new SalesRepository($connection),
+    $salesRepository,
     new ProductRepository($connection),
     new CampaignRepository($connection),
     new UserRepository($connection),
 ));
+$walletController = new WalletController(new WalletService($salesRepository));
 
 $router->post('/auth/login', static function () use ($loginController) {
     $body = json_decode(file_get_contents('php://input') ?: '{}', true);
@@ -68,6 +72,7 @@ $router->post('/campaigns', $campaignController->create(...), $productMiddleware
 $router->get('/campaigns', $campaignController->list(...), $productMiddleware);
 $router->post('/sales', $salesController->create(...), $productMiddleware);
 $router->post('/sales/{external_id}/cancel', $salesController->cancel(...), $productMiddleware);
+$router->get('/me/wallet', $walletController->show(...), [$authentication, new RoleMiddleware('seller')]);
 
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $headers = function_exists('getallheaders') ? getallheaders() : [];

@@ -44,8 +44,10 @@ Este arquivo registra o contexto necessário para retomar o desenvolvimento sem 
 - Criação e listagem de campanhas com validação de período e orçamento;
 - Registro transacional de vendas com cálculo de pontos, idempotência e crédito no ledger;
 - Cancelamento idempotente com estorno de pontos, janela de 30 dias e devolução transacional de verba;
+- Carteira e extrato do seller com saldo derivado do ledger e ownership pelo JWT;
 - Teste HTTP real de campanhas em `backend/bin/test-campaigns-http.sh`;
 - Teste HTTP real de cancelamento em `backend/bin/test-cancellations-http.sh`;
+- Teste HTTP real da carteira em `backend/bin/test-wallet-http.sh`;
 - `firebase/php-jwt` 7.1.1;
 - `composer.lock` versionado;
 - PHPUnit: 31 testes e 47 assertions passando;
@@ -59,10 +61,14 @@ seller1@toro.local / seller123
 seller2@toro.local / seller123
 ```
 
-## Próxima tarefa imediata
+## Task atual
 
-Implementar carteira e extrato do seller. A spec, o plano e as decisões do
-cancelamento/estorno foram concluídos em:
+Carteira e extrato do seller implementados conforme:
+
+- `docs/specs/wallet.md`;
+- `docs/plans/006-wallet.md`.
+
+A spec, o plano e as decisões do cancelamento/estorno foram concluídos em:
 
 - `docs/specs/cancellations.md`;
 - `docs/plans/005-sale-cancellation.md`;
@@ -73,6 +79,11 @@ Regra implementada: venda aprovada só pode ser cancelada antes de completar 30
 dias desde `sales.created_at`; no limite ou depois retorna `422`.
 
 O frontend React será iniciado somente após vendas, cancelamento e carteira.
+
+## Próxima tarefa imediata
+
+Adicionar testes de integração de concorrência e depois iniciar o frontend
+React.
 
 ## Backlog ordenado
 
@@ -85,7 +96,7 @@ O frontend React será iniciado somente após vendas, cancelamento e carteira.
 - [x] Campanhas;
 - [x] Motor de pontuação;
 - [x] Cancelamento e estorno com janela de 30 dias;
-- [ ] Carteira/extrato;
+- [x] Carteira/extrato com ownership e saldo derivado do ledger;
 - [ ] Testes de concorrência;
 - [ ] Frontend React (após vendas, cancelamento e carteira);
 - [x] Requests versionados em `requests/api.http`;
