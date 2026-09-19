@@ -29,6 +29,7 @@ services:
       DB_USERNAME: ${MYSQL_USER:-toro}
       DB_PASSWORD: ${MYSQL_PASSWORD:-toro}
       JWT_SECRET: ${JWT_SECRET:-development-secret-change-me-32-chars-min}
+      PHP_CLI_SERVER_WORKERS: ${PHP_CLI_SERVER_WORKERS:-4}
     depends_on:
       database:
         condition: service_healthy

@@ -45,6 +45,7 @@ Este arquivo registra o contexto necessário para retomar o desenvolvimento sem 
 - Registro transacional de vendas com cálculo de pontos, idempotência e crédito no ledger;
 - Cancelamento idempotente com estorno de pontos, janela de 30 dias e devolução transacional de verba;
 - Carteira e extrato do seller com saldo derivado do ledger e ownership pelo JWT;
+- Testes de concorrência para consumo de verba e cancelamento idempotente;
 - Teste HTTP real de campanhas em `backend/bin/test-campaigns-http.sh`;
 - Teste HTTP real de cancelamento em `backend/bin/test-cancellations-http.sh`;
 - Teste HTTP real da carteira em `backend/bin/test-wallet-http.sh`;
@@ -82,8 +83,7 @@ O frontend React será iniciado somente após vendas, cancelamento e carteira.
 
 ## Próxima tarefa imediata
 
-Adicionar testes de integração de concorrência e depois iniciar o frontend
-React.
+Iniciar o frontend React após a conclusão dos fluxos principais do backend.
 
 ## Backlog ordenado
 
@@ -97,7 +97,7 @@ React.
 - [x] Motor de pontuação;
 - [x] Cancelamento e estorno com janela de 30 dias;
 - [x] Carteira/extrato com ownership e saldo derivado do ledger;
-- [ ] Testes de concorrência;
+- [x] Testes de concorrência para vendas e cancelamentos;
 - [ ] Frontend React (após vendas, cancelamento e carteira);
 - [x] Requests versionados em `requests/api.http`;
 - [ ] OpenAPI/Swagger;

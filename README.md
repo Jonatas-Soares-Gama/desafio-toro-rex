@@ -164,6 +164,9 @@ cancelamento, estorno, venda inexistente e repetição idempotente.
 O fluxo `backend/bin/test-wallet-http.sh` verifica autorização, cálculo do
 saldo, ownership entre sellers, crédito, estorno e repetição idempotente.
 
+O fluxo `backend/bin/test-concurrency-http.sh` verifica duas vendas concorrentes
+disputando a mesma verba e dois cancelamentos concorrentes da mesma venda.
+
 ## Testes
 
 Executar a suíte PHPUnit dentro do container:
@@ -187,6 +190,7 @@ O projeto também possui testes unitários para:
 - Registro de vendas e regras transacionais pelo teste HTTP Dockerizado.
 - Cancelamento, estorno e idempotência pelo teste HTTP Dockerizado.
 - Carteira, extrato, ownership e saldo derivado do ledger pelo teste HTTP Dockerizado.
+- Concorrência de verba e cancelamento pelo teste HTTP Dockerizado.
 
 ## Banco de dados
 
@@ -217,6 +221,5 @@ Documentação complementar:
 
 ## Próximas etapas
 
-1. Testes de integração com concorrência;
-2. Frontend React;
-3. OpenAPI/Swagger e README final.
+1. Frontend React;
+2. OpenAPI/Swagger e README final.
