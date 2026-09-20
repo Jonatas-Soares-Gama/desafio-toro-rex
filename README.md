@@ -44,8 +44,14 @@ Não é necessário instalar PHP ou Composer na máquina host.
 Na raiz do projeto:
 
 ```bash
+cp .env.example .env
 docker compose up --build
 ```
+
+O arquivo `.env` concentra as credenciais locais do MySQL, os parâmetros de
+conexão usados pelo backend e o segredo JWT. Ele é ignorado pelo Git; apenas o
+`.env.example` é versionado. Em ambiente real, substitua todos os valores de
+desenvolvimento por credenciais e um segredo aleatórios.
 
 Serviços disponíveis:
 

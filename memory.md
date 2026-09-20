@@ -55,6 +55,8 @@ Este arquivo registra o contexto necessário para retomar o desenvolvimento sem 
 - Exportação CSV do histórico no frontend com teste automatizado;
 - Frontend React com login, CRUD de produtos, campanhas, vendas, sellers e carteira;
 - Testes frontend de JWT, SKU e CSV, com lint e build passando;
+- Configuração local centralizada em `.env.example`, com conexão PDO e JWT
+  recebendo variáveis de ambiente obrigatórias no backend;
 - `firebase/php-jwt` 7.1.1;
 - `composer.lock` versionado;
 - PHPUnit: 31 testes e 47 assertions passando;

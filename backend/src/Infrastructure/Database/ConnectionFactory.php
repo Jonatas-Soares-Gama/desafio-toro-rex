@@ -10,11 +10,11 @@ final class ConnectionFactory
 {
     public function create(): PDO
     {
-        $host = $this->env('DB_HOST', 'database');
-        $port = $this->env('DB_PORT', '3306');
-        $database = $this->env('DB_DATABASE', 'toro');
-        $username = $this->env('DB_USERNAME', 'toro');
-        $password = $this->env('DB_PASSWORD', 'toro');
+        $host = $this->requiredEnv('DB_HOST');
+        $port = $this->requiredEnv('DB_PORT');
+        $database = $this->requiredEnv('DB_DATABASE');
+        $username = $this->requiredEnv('DB_USERNAME');
+        $password = $this->requiredEnv('DB_PASSWORD');
 
         $pdo = new PDO(
             "mysql:host={$host};port={$port};dbname={$database};charset=utf8mb4",
@@ -30,10 +30,14 @@ final class ConnectionFactory
         return $pdo;
     }
 
-    private function env(string $name, string $default): string
+    private function requiredEnv(string $name): string
     {
         $value = getenv($name);
 
-        return $value === false || $value === '' ? $default : $value;
+        if ($value === false || $value === '') {
+            throw new \RuntimeException("Missing required environment variable: {$name}");
+        }
+
+        return $value;
     }
 }

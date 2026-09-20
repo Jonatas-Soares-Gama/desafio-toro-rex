@@ -34,7 +34,10 @@ $router->get('/health', static fn() => $healthController());
 
 $connection = (new ConnectionFactory())->create();
 
-$jwtSecret = getenv('JWT_SECRET') ?: 'development-secret-change-me-32-chars-min';
+$jwtSecret = getenv('JWT_SECRET');
+if ($jwtSecret === false || $jwtSecret === '') {
+    throw new RuntimeException('Missing required environment variable: JWT_SECRET');
+}
 $userRepository = new UserRepository($connection);
 
 $loginController = new LoginController(
