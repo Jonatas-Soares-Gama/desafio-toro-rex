@@ -8,6 +8,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\WalletController;
+use App\Http\Controllers\UserController;
 use App\Http\Middleware\AuthenticationMiddleware;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Response\JsonResponse;
@@ -17,6 +18,7 @@ use App\Application\Product\ProductService;
 use App\Application\Campaign\CampaignService;
 use App\Application\Sales\SalesService;
 use App\Application\Wallet\WalletService;
+use App\Application\User\UserService;
 use App\Infrastructure\Database\ConnectionFactory;
 use App\Infrastructure\Persistence\UserRepository;
 use App\Infrastructure\Persistence\ProductRepository;
@@ -33,10 +35,11 @@ $router->get('/health', static fn() => $healthController());
 $connection = (new ConnectionFactory())->create();
 
 $jwtSecret = getenv('JWT_SECRET') ?: 'development-secret-change-me-32-chars-min';
+$userRepository = new UserRepository($connection);
 
 $loginController = new LoginController(
     new LoginService(
-        new UserRepository($connection),
+        $userRepository,
         new JwtTokenService($jwtSecret, 3600),
     ),
 );
@@ -49,9 +52,10 @@ $salesController = new SalesController(new SalesService(
     $salesRepository,
     new ProductRepository($connection),
     new CampaignRepository($connection),
-    new UserRepository($connection),
+    $userRepository,
 ));
 $walletController = new WalletController(new WalletService($salesRepository));
+$userController = new UserController(new UserService($userRepository));
 
 $router->post('/auth/login', static function () use ($loginController) {
     $body = json_decode(file_get_contents('php://input') ?: '{}', true);
@@ -70,7 +74,10 @@ $router->put('/products/{id}', $productController->update(...), $productMiddlewa
 $router->delete('/products/{id}', $productController->delete(...), $productMiddleware);
 $router->post('/campaigns', $campaignController->create(...), $productMiddleware);
 $router->get('/campaigns', $campaignController->list(...), $productMiddleware);
+$router->post('/users', $userController->createSeller(...), $productMiddleware);
+$router->get('/users/sellers', $userController->listSellers(...), $productMiddleware);
 $router->post('/sales', $salesController->create(...), $productMiddleware);
+$router->get('/sales', $salesController->list(...), $productMiddleware);
 $router->post('/sales/{external_id}/cancel', $salesController->cancel(...), $productMiddleware);
 $router->get('/me/wallet', $walletController->show(...), [$authentication, new RoleMiddleware('seller')]);
 

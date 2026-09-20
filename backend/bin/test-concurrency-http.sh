@@ -5,7 +5,7 @@ set -eu
 base_url="${BASE_URL:-http://localhost:8080}"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
-suffix="$(date +%s)"
+suffix="$(date +%s)-$$"
 
 login() {
     email="$1"

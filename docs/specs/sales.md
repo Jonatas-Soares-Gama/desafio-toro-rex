@@ -7,7 +7,8 @@ calcula os pontos com base no produto, consome a verba da campanha e publica o
 crédito no ledger dentro da mesma transação.
 
 Esta spec cobre somente o registro da venda. Cancelamento, estorno e consulta
-da carteira serão especificados em ciclos separados.
+da carteira serão especificados em ciclos separados. A listagem administrativa
+abaixo apoia a operação do frontend e não altera as regras de pontuação.
 
 ## Autorização
 
@@ -24,6 +25,18 @@ A rota exige `Authorization: Bearer <jwt>` com `role = admin`.
 ```text
 POST /sales
 ```
+
+### Listagem administrativa
+
+```text
+GET /sales
+```
+
+A rota exige JWT com `role = admin` e retorna as vendas mais recentes primeiro.
+Cada item inclui os IDs técnicos, nomes de seller, produto e campanha,
+quantidade, valor unitário, pontos calculados por
+`quantity * products.points_per_unit`, status e data de criação. O endpoint é
+somente de leitura e não aceita filtros nesta primeira versão.
 
 ### Request
 
@@ -44,6 +57,9 @@ Regras de entrada:
 - `campaign_id`, `seller_id`, `product_id` e `quantity` são inteiros positivos;
 - `unit_value` é decimal não negativo com no máximo duas casas;
 - todos os campos são obrigatórios;
+- na interface manual, o `external_id` é gerado automaticamente pelo frontend
+  no formato `manual-<UUID>`; integrações continuam podendo informar seu
+  próprio identificador;
 - valores monetários permanecem como `DECIMAL`; não são convertidos para
   `float`;
 - o cliente não informa pontos, status, `budget_used` ou entradas do ledger.

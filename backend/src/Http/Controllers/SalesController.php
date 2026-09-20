@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Application\Sales\SaleConflictException;
+use App\Application\Sales\SaleConcurrencyException;
 use App\Application\Sales\SaleNotFoundException;
 use App\Application\Sales\SaleValidationException;
 use App\Application\Sales\SalesService;
@@ -29,6 +30,8 @@ final class SalesController
             return new JsonResponse(['error' => $exception->getMessage()], 422);
         } catch (SaleConflictException $exception) {
             return new JsonResponse(['error' => $exception->getMessage()], 409);
+        } catch (SaleConcurrencyException $exception) {
+            return new JsonResponse(['error' => $exception->getMessage()], 503);
         }
     }
 
@@ -45,7 +48,14 @@ final class SalesController
             return new JsonResponse(['error' => $exception->getMessage()], 404);
         } catch (SaleValidationException $exception) {
             return new JsonResponse(['error' => $exception->getMessage()], 422);
+        } catch (SaleConcurrencyException $exception) {
+            return new JsonResponse(['error' => $exception->getMessage()], 503);
         }
+    }
+
+    public function list(): JsonResponse
+    {
+        return new JsonResponse(['sales' => $this->sales->list()]);
     }
 
     /** @return array<string, int|string> */

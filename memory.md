@@ -46,9 +46,15 @@ Este arquivo registra o contexto necessário para retomar o desenvolvimento sem 
 - Cancelamento idempotente com estorno de pontos, janela de 30 dias e devolução transacional de verba;
 - Carteira e extrato do seller com saldo derivado do ledger e ownership pelo JWT;
 - Testes de concorrência para consumo de verba e cancelamento idempotente;
+- Retry de transações após deadlock MySQL (`1213`/`40001`), com fallback JSON `503`;
 - Teste HTTP real de campanhas em `backend/bin/test-campaigns-http.sh`;
 - Teste HTTP real de cancelamento em `backend/bin/test-cancellations-http.sh`;
 - Teste HTTP real da carteira em `backend/bin/test-wallet-http.sh`;
+- Cadastro e listagem administrativa de sellers em `backend/bin/test-users-http.sh`;
+- Histórico administrativo de vendas e cancelamento por linha;
+- Exportação CSV do histórico no frontend com teste automatizado;
+- Frontend React com login, CRUD de produtos, campanhas, vendas, sellers e carteira;
+- Testes frontend de JWT, SKU e CSV, com lint e build passando;
 - `firebase/php-jwt` 7.1.1;
 - `composer.lock` versionado;
 - PHPUnit: 31 testes e 47 assertions passando;
@@ -62,28 +68,29 @@ seller1@toro.local / seller123
 seller2@toro.local / seller123
 ```
 
-## Task atual
+## Estado atual
 
-Carteira e extrato do seller implementados conforme:
-
-- `docs/specs/wallet.md`;
-- `docs/plans/006-wallet.md`.
-
-A spec, o plano e as decisões do cancelamento/estorno foram concluídos em:
-
-- `docs/specs/cancellations.md`;
-- `docs/plans/005-sale-cancellation.md`;
-- `docs/decisions/005-cancellation-points-source.md`;
-- `docs/decisions/006-cancellation-window.md`.
+O núcleo do desafio e o frontend estão implementados. As telas principais do
+frontend foram validadas manualmente. A regressão limpa passou em autenticação,
+produtos, campanhas, vendas, cancelamento, carteira, usuários e histórico. O
+teste de concorrência passou repetidamente após o tratamento de deadlock.
 
 Regra implementada: venda aprovada só pode ser cancelada antes de completar 30
 dias desde `sales.created_at`; no limite ou depois retorna `422`.
 
-O frontend React será iniciado somente após vendas, cancelamento e carteira.
+Planos concluídos ou implementados:
 
-## Próxima tarefa imediata
+- `docs/plans/001-authentication-acl.md` a `docs/plans/007-concurrency-tests.md`;
+- `docs/plans/008-frontend-react.md`;
+- `docs/plans/009-admin-ux-improvements.md`;
+- `docs/plans/010-sales-history-cancellation.md`;
+- `docs/plans/011-sales-csv-export.md`.
 
-Iniciar o frontend React após a conclusão dos fluxos principais do backend.
+## Próxima etapa
+
+Preparar a entrega final: revisar o diff, confirmar ausência de segredos, criar
+commits focados e manter OpenAPI/Swagger, SKU no backend, paginação e filtros
+como melhorias opcionais.
 
 ## Backlog ordenado
 
@@ -98,10 +105,10 @@ Iniciar o frontend React após a conclusão dos fluxos principais do backend.
 - [x] Cancelamento e estorno com janela de 30 dias;
 - [x] Carteira/extrato com ownership e saldo derivado do ledger;
 - [x] Testes de concorrência para vendas e cancelamentos;
-- [ ] Frontend React (após vendas, cancelamento e carteira);
+- [x] Frontend React com revisão manual das telas principais;
 - [x] Requests versionados em `requests/api.http`;
 - [ ] OpenAPI/Swagger;
-- [ ] README final com limitações e próximos passos.
+- [x] README com execução, seed, API, testes, limitações e próximos passos opcionais.
 
 ## Como validar a base atual
 
@@ -109,4 +116,20 @@ Iniciar o frontend React após a conclusão dos fluxos principais do backend.
 docker compose up --build
 docker compose run --rm --no-deps backend vendor/bin/phpunit
 curl -i http://localhost:8080/health
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm run test
+npm run lint
+npm run build
+```
+
+Regressão HTTP completa:
+
+```bash
+docker compose exec -T backend /app/bin/test-http.sh
+docker compose exec -T backend /app/bin/test-concurrency-http.sh
 ```

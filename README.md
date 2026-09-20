@@ -1,6 +1,6 @@
 # Vendeu, Ganhou
 
-Plataforma de incentivo de vendas desenvolvida para o desafio técnico de desenvolvedor(a) pleno. O backend usa PHP 8 puro, MySQL e PDO; o frontend será desenvolvido em React; toda a aplicação roda com Docker Compose.
+Plataforma de incentivo de vendas desenvolvida para o desafio técnico de desenvolvedor(a) pleno. O backend usa PHP 8 puro, MySQL e PDO; o frontend usa React, TypeScript e Vite; toda a aplicação roda com Docker Compose.
 
 ## Estado atual
 
@@ -23,6 +23,10 @@ Já implementado:
 - Registro transacional de vendas com cálculo de pontos, idempotência e consumo seguro de verba;
 - Cancelamento idempotente com estorno de pontos e devolução transacional de verba;
 - Carteira do seller com saldo derivado do ledger e extrato protegido por ownership;
+- Histórico administrativo de vendas com cancelamento por linha e exportação CSV;
+- Frontend React com login, área administrativa, carteira do seller e tratamento de estados de erro;
+- Cadastro administrativo de sellers e seleção de seller por nome no lançamento de venda;
+- Retry transacional para deadlocks MySQL (`1213`/`40001`) em vendas e cancelamentos concorrentes;
 - Especificação de autorização e testes unitários do principal, autenticação, ACL e pipeline;
 - Verificação de senha com `password_verify`;
 - `firebase/php-jwt` 7.x com `composer.lock` versionado.
@@ -46,14 +50,28 @@ docker compose up --build
 Serviços disponíveis:
 
 - Backend: http://localhost:8080
+- Frontend: http://localhost:5173
 - MySQL: localhost:3306
 
 O backend aguarda o MySQL ficar saudável, executa `backend/bin/migrate.php` e inicia o servidor PHP.
+
+O frontend usa o proxy do Vite para encaminhar `/auth`, `/products`,
+`/campaigns`, `/sales` e `/me` ao backend. Não é necessário configurar CORS
+para o ambiente local.
 
 Para parar os containers:
 
 ```bash
 docker compose down
+```
+
+Para executar somente o frontend fora do Compose, instale Node.js 22 ou
+superior e rode:
+
+```bash
+cd frontend
+npm install
+BACKEND_URL=http://localhost:8080 npm run dev
 ```
 
 Para apagar também o volume local do banco e recriar o seed do zero:
@@ -105,6 +123,33 @@ O token contém `sub`, `role`, `iat` e `exp`. O segredo é configurado por `JWT_
 O registro de vendas e o cancelamento com estorno estão disponíveis para
 administradores. A venda aprovada só pode ser cancelada antes de completar 30
 dias desde `created_at`; o limite e qualquer instante posterior retornam `422`.
+
+Na interface, o admin pode consultar o histórico de vendas, cancelar uma venda
+pela própria linha e exportar as vendas carregadas para CSV UTF-8 compatível com
+Excel. O arquivo usa separador `;` e não cria uma nova requisição.
+
+### Sellers administrativos
+
+O admin pode cadastrar e listar sellers sem expor `password_hash`:
+
+```text
+GET  /users/sellers
+POST /users
+```
+
+Essas rotas exigem token de admin. A tela de vendas usa a listagem para mostrar
+nome e e-mail no seletor, mantendo o `seller_id` apenas no payload interno.
+
+### Histórico administrativo de vendas
+
+```bash
+curl -i http://localhost:8080/sales \
+  -H "Authorization: Bearer <admin-token>"
+```
+
+A resposta contém seller, produto, campanha, quantidade, pontos, status, data e
+o identificador técnico da venda. A ordenação é da mais recente para a mais
+antiga.
 
 ### Registro de venda
 
@@ -164,10 +209,34 @@ cancelamento, estorno, venda inexistente e repetição idempotente.
 O fluxo `backend/bin/test-wallet-http.sh` verifica autorização, cálculo do
 saldo, ownership entre sellers, crédito, estorno e repetição idempotente.
 
+O admin pode cadastrar sellers pela tela **Usuários**. O formulário de venda
+gera automaticamente o `external_id` técnico e permite escolher o seller por
+nome e e-mail; a API continua recebendo o campo para preservar a idempotência.
+
+O fluxo `backend/bin/test-users-http.sh` verifica cadastro e listagem de sellers,
+incluindo `401`, `403`, `409`, `422` e ausência de `password_hash`.
+
+O fluxo `backend/bin/test-sales-history-http.sh` verifica a listagem protegida,
+os nomes contextuais, os pontos calculados e o cancelamento pela venda listada.
+
 O fluxo `backend/bin/test-concurrency-http.sh` verifica duas vendas concorrentes
-disputando a mesma verba e dois cancelamentos concorrentes da mesma venda.
+disputando a mesma verba e dois cancelamentos concorrentes da mesma venda. O
+caso de uso repete transações que recebem deadlock transitório e retorna `503`
+em JSON se a concorrência persistir.
 
 ## Testes
+
+Verificar o frontend:
+
+```bash
+cd frontend
+npm run test
+npm run lint
+npm run build
+```
+
+O build é servido pelo Vite em desenvolvimento e o proxy mantém as chamadas
+da interface no mesmo host da aplicação.
 
 Executar a suíte PHPUnit dentro do container:
 
@@ -191,6 +260,7 @@ O projeto também possui testes unitários para:
 - Cancelamento, estorno e idempotência pelo teste HTTP Dockerizado.
 - Carteira, extrato, ownership e saldo derivado do ledger pelo teste HTTP Dockerizado.
 - Concorrência de verba e cancelamento pelo teste HTTP Dockerizado.
+- Conversor CSV do histórico com teste automatizado do frontend.
 
 ## Banco de dados
 
@@ -219,7 +289,9 @@ Documentação complementar:
 - `AGENTS.md`: regras de desenvolvimento do projeto;
 - `memory.md`: estado e próximas tarefas.
 
-## Próximas etapas
+## Próximas etapas opcionais
 
-1. Frontend React;
-2. OpenAPI/Swagger e README final.
+- gerar o SKU também no backend e permitir omissão do campo na API;
+- adicionar OpenAPI/Swagger;
+- adicionar paginação e filtros ao histórico;
+- exportar grandes volumes de vendas pelo backend.

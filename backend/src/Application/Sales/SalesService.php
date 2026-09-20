@@ -16,6 +16,8 @@ use PDOException;
 
 final class SalesService
 {
+    private const MAX_DEADLOCK_RETRIES = 2;
+
     public function __construct(
         private readonly PDO $connection,
         private readonly SalesRepository $sales,
@@ -28,6 +30,13 @@ final class SalesService
     /** @param array<string, mixed> $input */
     /** @return array{sale: Sale, created: bool} */
     public function create(array $input): array
+    {
+        return $this->createAttempt($input, 0);
+    }
+
+    /** @param array<string, mixed> $input */
+    /** @return array{sale: Sale, created: bool} */
+    private function createAttempt(array $input, int $attempt): array
     {
         [$externalId, $campaignId, $sellerId, $productId, $quantity, $unitValue] = $this->validatedInput($input);
 
@@ -91,6 +100,16 @@ final class SalesService
                 $this->connection->rollBack();
             }
 
+            if ($this->isDeadlock($exception)) {
+                if ($attempt < self::MAX_DEADLOCK_RETRIES) {
+                    $this->waitBeforeRetry($attempt);
+
+                    return $this->createAttempt($input, $attempt + 1);
+                }
+
+                throw new SaleConcurrencyException('Sale could not be processed because of concurrent updates.', 0, $exception);
+            }
+
             if (($exception->errorInfo[1] ?? null) === 1062) {
                 $existing = $this->sales->findByExternalId($externalId);
                 if ($existing !== null && $this->matches($existing, $campaignId, $sellerId, $productId, $quantity, $unitValue)) {
@@ -117,6 +136,12 @@ final class SalesService
             throw new SaleValidationException('Sale external_id is invalid.');
         }
 
+        return $this->cancelAttempt($externalId, 0);
+    }
+
+    /** @return array{sale: Sale, reversedPoints: int} */
+    private function cancelAttempt(string $externalId, int $attempt): array
+    {
         $this->connection->beginTransaction();
 
         try {
@@ -178,8 +203,25 @@ final class SalesService
             if ($this->connection->inTransaction()) {
                 $this->connection->rollBack();
             }
+
+            if ($exception instanceof PDOException && $this->isDeadlock($exception)) {
+                if ($attempt < self::MAX_DEADLOCK_RETRIES) {
+                    $this->waitBeforeRetry($attempt);
+
+                    return $this->cancelAttempt($externalId, $attempt + 1);
+                }
+
+                throw new SaleConcurrencyException('Sale could not be canceled because of concurrent updates.', 0, $exception);
+            }
+
             throw $exception;
         }
+    }
+
+    /** @return list<array{id: int, external_id: string, campaign_id: int, campaign_name: string, seller_id: int, seller_name: string, product_id: int, product_name: string, quantity: int, unit_value: string, points: int, status: string, created_at: string}> */
+    public function list(): array
+    {
+        return $this->sales->allWithContext();
     }
 
     /** @return array{0: string, 1: int, 2: int, 3: int, 4: int, 5: string} */
@@ -225,5 +267,18 @@ final class SalesService
             && $sale->productId === $productId
             && $sale->quantity === $quantity
             && $sale->unitValue === $unitValue;
+    }
+
+    private function isDeadlock(PDOException $exception): bool
+    {
+        $sqlState = (string) ($exception->errorInfo[0] ?? $exception->getCode());
+
+        return $sqlState === '40001'
+            || (int) ($exception->errorInfo[1] ?? 0) === 1213;
+    }
+
+    private function waitBeforeRetry(int $attempt): void
+    {
+        usleep(10_000 * ($attempt + 1));
     }
 }

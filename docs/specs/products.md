@@ -36,10 +36,17 @@ Request:
 Regras:
 
 - `name` é texto não vazio;
-- `sku` é texto não vazio e único;
+- `sku` é texto não vazio e único; nesta interface ele é gerado automaticamente
+  a partir do nome, mas a API continua recebendo o campo para preservar o
+  contrato atual;
 - `points_per_unit` é inteiro positivo;
 - sucesso retorna `201` com o produto criado;
 - SKU duplicado retorna `409`.
+
+Na interface administrativa, o SKU é normalizado em maiúsculas, sem acentos e
+com hífens enquanto o nome é digitado. O campo é somente leitura. Durante esta
+fase a geração é do frontend; o backend continua protegendo a unicidade com a
+constraint existente.
 
 ### Listar
 

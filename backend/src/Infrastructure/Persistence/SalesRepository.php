@@ -41,6 +41,41 @@ final class SalesRepository
         return $this->findById((int) $this->connection->lastInsertId());
     }
 
+    /** @return list<array{id: int, external_id: string, campaign_id: int, campaign_name: string, seller_id: int, seller_name: string, product_id: int, product_name: string, quantity: int, unit_value: string, points: int, status: string, created_at: string}> */
+    public function allWithContext(): array
+    {
+        $statement = $this->connection->query(
+            'SELECT s.id, s.external_id, s.campaign_id, c.name AS campaign_name,
+                    s.seller_id, u.name AS seller_name, s.product_id, p.name AS product_name,
+                    s.quantity, s.unit_value, s.quantity * p.points_per_unit AS points,
+                    s.status, s.created_at
+             FROM sales s
+             INNER JOIN campaigns c ON c.id = s.campaign_id
+             INNER JOIN users u ON u.id = s.seller_id
+             INNER JOIN products p ON p.id = s.product_id
+             ORDER BY s.created_at DESC, s.id DESC',
+        );
+
+        return array_map(
+            static fn(array $row): array => [
+                'id' => (int) $row['id'],
+                'external_id' => (string) $row['external_id'],
+                'campaign_id' => (int) $row['campaign_id'],
+                'campaign_name' => (string) $row['campaign_name'],
+                'seller_id' => (int) $row['seller_id'],
+                'seller_name' => (string) $row['seller_name'],
+                'product_id' => (int) $row['product_id'],
+                'product_name' => (string) $row['product_name'],
+                'quantity' => (int) $row['quantity'],
+                'unit_value' => (string) $row['unit_value'],
+                'points' => (int) $row['points'],
+                'status' => (string) $row['status'],
+                'created_at' => (string) $row['created_at'],
+            ],
+            $statement->fetchAll(PDO::FETCH_ASSOC),
+        );
+    }
+
     public function createCredit(Sale $sale, int $points): void
     {
         $statement = $this->connection->prepare(

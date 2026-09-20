@@ -71,7 +71,10 @@ O middleware não deve aceitar `role` vindo do body, query string ou header adic
 | CRUD de produtos | sim | não |
 | Criar/listar campanhas administrativas | sim | não |
 | Registrar venda | sim | não |
+| Listar vendas administrativas | sim | não |
 | Cancelar venda | sim | não |
+| Cadastrar seller | sim | não |
+| Listar sellers | sim | não |
 | Consultar própria carteira | sim | sim |
 | Consultar carteira de outro vendedor | não aplicável | nunca |
 
@@ -106,7 +109,10 @@ DELETE /products/{id}      admin
 POST /campaigns            admin
 GET  /campaigns            admin
 POST /sales                admin
+GET  /sales                admin
 POST /sales/{external_id}/cancel  admin
+POST /users                    admin
+GET  /users/sellers            admin
 GET  /me/wallet            seller autenticado
 ```
 
