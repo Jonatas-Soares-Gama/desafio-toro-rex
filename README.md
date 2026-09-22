@@ -35,6 +35,8 @@ points = quantity * product.points_per_unit
 
 Se `budget_used + points` ultrapassar `budget_total`, a venda inteira é rejeitada com `422`. Não existe crédito parcial.
 
+Como possível evolução, a campanha poderia ter uma verba separada para bonificações extraordinárias. A regra principal continuaria recusando vendas quando o orçamento normal acabasse, mas o administrador poderia configurar um crédito especial para reconhecer sellers que superassem uma meta e liberar prêmios melhores. Esse crédito teria limite, regras próprias e entradas separadas no ledger, sem misturar a premiação adicional com o orçamento original. Essa alternativa não faz parte da versão atual.
+
 Quando a venda cabe na verba, estas três operações são confirmadas juntas:
 
 1. criação da venda como `approved`;
