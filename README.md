@@ -232,6 +232,16 @@ em JSON se a concorrência persistir.
 
 ## Testes
 
+Os comandos principais também estão disponíveis no `Makefile`:
+
+```bash
+make up
+make test-unit
+make test-http
+make test
+make down
+```
+
 Verificar o frontend:
 
 ```bash
