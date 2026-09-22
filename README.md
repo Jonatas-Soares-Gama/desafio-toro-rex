@@ -386,3 +386,7 @@ As decisões de domínio mais importantes estão documentadas em [`docs/decision
 - autenticação JWT;
 - pontos de estorno vindos do crédito original;
 - janela de cancelamento de 30 dias.
+
+
+
+# Agradeço pela oportunidade!
