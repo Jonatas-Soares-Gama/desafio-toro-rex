@@ -24,8 +24,10 @@ final class SalesController
         try {
             $result = $this->sales->create($request->body());
             $status = $result['created'] ? 201 : 200;
+            $sale = $this->serialize($result['sale']);
+            $sale['points'] = $result['points'];
 
-            return new JsonResponse(['sale' => $this->serialize($result['sale'])], $status);
+            return new JsonResponse(['sale' => $sale], $status);
         } catch (SaleValidationException $exception) {
             return new JsonResponse(['error' => $exception->getMessage()], 422);
         } catch (SaleConflictException $exception) {

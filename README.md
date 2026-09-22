@@ -1,96 +1,166 @@
 # Vendeu, Ganhou
 
-Plataforma de incentivo de vendas desenvolvida para o desafio técnico de desenvolvedor(a) pleno. O backend usa PHP 8 puro, MySQL e PDO; o frontend usa React, TypeScript e Vite; toda a aplicação roda com Docker Compose.
+Plataforma de incentivo de vendas desenvolvida para o desafio técnico de desenvolvedor(a) pleno.
 
-## Estado atual
+O sistema permite que administradores cadastrem produtos e campanhas, lancem vendas para sellers e acompanhem os pontos distribuídos. O seller acessa apenas a própria carteira e o respectivo extrato.
 
-Já implementado:
+O foco da implementação está no motor de pontuação, na consistência transacional da verba e do ledger, na autorização por papel e em uma execução simples por Docker Compose.
 
-- Estrutura inicial documentada com Clean Code, SDD e TDD;
-- PHP 8.3 e Composer no container;
-- PHPUnit configurado;
-- Router e endpoint `GET /health`;
-- MySQL 8.4 com schema versionado;
-- Migration e seed idempotentes executados no boot;
-- Conexão PDO com prepared statements;
-- Login com JWT;
-- Middleware JWT com principal autenticado;
-- ACL por papel com respostas `401` e `403`;
-- Pipeline de middlewares por rota no router;
-- Rota administrativa protegida `GET /admin/ping` para verificação HTTP;
+## Resultado da entrega
+
+O projeto contempla os fluxos principais do desafio:
+
+- login com JWT e senhas protegidas por `password_hash`;
+- autorização por papel, diferenciando `401 Unauthorized` de `403 Forbidden`;
 - CRUD de produtos com inativação lógica;
-- Criação e listagem de campanhas com validação de período e orçamento;
-- Registro transacional de vendas com cálculo de pontos, idempotência e consumo seguro de verba;
-- Cancelamento idempotente com estorno de pontos e devolução transacional de verba;
-- Carteira do seller com saldo derivado do ledger e extrato protegido por ownership;
-- Histórico administrativo de vendas com cancelamento por linha e exportação CSV;
-- Frontend React com login, área administrativa, carteira do seller e tratamento de estados de erro;
-- Cadastro administrativo de sellers e seleção de seller por nome no lançamento de venda;
-- Retry transacional para deadlocks MySQL (`1213`/`40001`) em vendas e cancelamentos concorrentes;
-- Especificação de autorização e testes unitários do principal, autenticação, ACL e pipeline;
-- Verificação de senha com `password_verify`;
-- `firebase/php-jwt` 7.x com `composer.lock` versionado.
+- criação e acompanhamento de campanhas com orçamento;
+- lançamento de vendas com cálculo de pontos, idempotência e controle de verba;
+- cancelamento idempotente com estorno no ledger;
+- carteira do seller calculada a partir do ledger;
+- histórico administrativo de vendas, cancelamento por linha e exportação CSV;
+- cadastro administrativo de sellers;
+- proteção contra concorrência no consumo e na devolução de verba;
+- frontend React para os fluxos de admin e seller;
+- testes unitários, testes HTTP contra MySQL real e testes automatizados do frontend.
 
-## Pré-requisitos
+## Como a solução atende aos critérios de avaliação
+
+| Critério | Como foi tratado |
+|---|---|
+| Motor de pontuação — 30% | Pontos calculados por `quantity * points_per_unit`; venda acima da verba é rejeitada integralmente; venda, crédito no ledger e consumo da campanha usam uma única transação. |
+| Segurança e ACL — 20% | JWT assinado e validado, expiração, papéis `admin`/`seller`, ownership da carteira, prepared statements, validação no servidor e nenhuma exposição de `password_hash`. |
+| Qualidade do código — 20% | PHP 8 puro, PDO, separação entre Domain, Application, Infrastructure e Http, responsabilidades pequenas e regras de negócio fora dos controllers. |
+| Facilidade para rodar — 15% | Docker Compose, MySQL, migration/seed no boot, credenciais de demonstração, `.env.example` e comandos equivalentes no Makefile. |
+| Frontend — 15% | React + TypeScript com login, área administrativa, carteira do seller, estados de carregamento/erro, tratamento de `401`/`403` e exportação CSV. |
+
+## Regras de negócio importantes
+
+### Pontuação e verba
+
+No momento da aprovação da venda:
+
+~~~text
+points = quantity * product.points_per_unit
+~~~
+
+Se `budget_used + points` ultrapassar `budget_total`, a venda inteira é rejeitada com `422`. Não existe crédito parcial.
+
+Quando a venda cabe na verba, estas três operações são confirmadas juntas:
+
+1. criação da venda como `approved`;
+2. criação do crédito no `wallet_entries`;
+3. incremento de `campaigns.budget_used`.
+
+Uma falha em qualquer etapa executa `ROLLBACK`.
+
+### Idempotência
+
+`sales.external_id` possui índice único. Repetir uma venda com o mesmo identificador e os mesmos dados retorna a venda já existente sem novo crédito ou consumo de verba. Reutilizar o identificador com dados diferentes retorna `409`.
+
+### Cancelamento e estorno
+
+O cancelamento:
+
+- exige papel `admin`;
+- bloqueia a venda com `SELECT ... FOR UPDATE`;
+- usa os pontos do crédito original no ledger;
+- cria um débito com o mesmo valor;
+- devolve os pontos à verba da campanha;
+- confirma status, débito e devolução na mesma transação.
+
+O cancelamento é idempotente. Repetir a operação não cria outro débito nem devolve verba novamente.
+
+Este projeto definiu uma janela adicional de 30 dias para cancelamento. O limite é exclusivo: uma venda com `now >= created_at + 30 dias` retorna `422`.
+
+### Ledger e histórico
+
+O saldo não é armazenado em um campo mutável. Ele é calculado como:
+
+~~~text
+saldo = soma dos créditos - soma dos débitos
+~~~
+
+Os pontos históricos vêm do crédito persistido. Portanto, editar ou inativar um produto não altera vendas já aprovadas, seu histórico ou seu estorno.
+
+## Stack e arquitetura
+
+- Backend: PHP 8.3 puro, sem framework full-stack;
+- Banco: MySQL 8.4;
+- Persistência: PDO com prepared statements e `ATTR_EMULATE_PREPARES = false`;
+- Frontend: React 19, TypeScript e Vite;
+- Autenticação: JWT com `firebase/php-jwt`;
+- Infraestrutura: Docker Compose.
+
+~~~text
+backend/src/
+├── Domain/           # Entidades e regras puras de negócio
+├── Application/      # Casos de uso e orquestração
+├── Infrastructure/   # PDO, repositories, JWT e persistência
+└── Http/             # Router, controllers, middleware e respostas
+
+frontend/src/
+├── features/         # auth, products, campaigns, sales, users e wallet
+├── components/       # componentes compartilhados
+└── lib/              # API, autenticação, erros e CSV
+~~~
+
+As transações de venda e cancelamento são coordenadas nos casos de uso. O bloqueio pessimista da campanha impede que vendas concorrentes ultrapassem a verba disponível. Deadlocks transitórios (`1213`/`40001`) recebem retry limitado.
+
+## Como executar
+
+### Pré-requisitos
 
 - Docker;
 - Docker Compose;
 - Git.
 
-Não é necessário instalar PHP ou Composer na máquina host.
+Não é necessário instalar PHP ou Composer na máquina host para executar o backend.
 
-## Como executar
+### Subir o ambiente
 
 Na raiz do projeto:
 
-```bash
+~~~bash
 cp .env.example .env
 docker compose up --build
-```
-
-O arquivo `.env` concentra as credenciais locais do MySQL, os parâmetros de
-conexão usados pelo backend e o segredo JWT. Ele é ignorado pelo Git; apenas o
-`.env.example` é versionado. Em ambiente real, substitua todos os valores de
-desenvolvimento por credenciais e um segredo aleatórios.
+~~~
 
 Serviços disponíveis:
 
-- Backend: http://localhost:8080
 - Frontend: http://localhost:5173
+- Backend: http://localhost:8080
 - MySQL: localhost:3306
 
-O backend aguarda o MySQL ficar saudável, executa `backend/bin/migrate.php` e inicia o servidor PHP.
+O backend aguarda o MySQL ficar saudável, executa `backend/bin/migrate.php` e inicia o servidor PHP. O script cria o schema e aplica o seed de demonstração.
 
-O frontend usa o proxy do Vite para encaminhar `/auth`, `/products`,
-`/campaigns`, `/sales` e `/me` ao backend. Não é necessário configurar CORS
-para o ambiente local.
+O frontend usa o proxy do Vite para encaminhar as chamadas de `/auth`, `/products`, `/campaigns`, `/users`, `/sales` e `/me` para o backend. Não é necessário configurar CORS no ambiente local.
 
-Para parar os containers:
+### Configuração
 
-```bash
+O arquivo `.env` concentra as credenciais locais do MySQL, os parâmetros de conexão e o segredo JWT. Ele não deve ser versionado.
+
+Para uso real, substitua todos os valores de desenvolvimento, principalmente `JWT_SECRET`, por credenciais e um segredo aleatórios. O segredo JWT precisa ter pelo menos 32 caracteres.
+
+### Parar e reiniciar
+
+~~~bash
 docker compose down
-```
+~~~
 
-Para executar somente o frontend fora do Compose, instale Node.js 22 ou
-superior e rode:
+Para remover também o volume do banco e recriar tudo do zero:
 
-```bash
-cd frontend
-npm install
-BACKEND_URL=http://localhost:8080 npm run dev
-```
-
-Para apagar também o volume local do banco e recriar o seed do zero:
-
-```bash
+~~~bash
 docker compose down -v
-```
+docker compose up --build
+~~~
 
-## Credenciais de seed
+O segundo comando apaga os dados locais persistidos no volume do MySQL.
 
-As credenciais são criadas por `backend/bin/migrate.php`. As senhas são transformadas em hash com `password_hash`.
+## Credenciais de demonstração
 
-| Papel | Email | Senha |
+As credenciais são criadas por `backend/bin/migrate.php`. As senhas são armazenadas usando `password_hash`.
+
+| Papel | E-mail | Senha |
 |---|---|---|
 | Admin | `admin@toro.local` | `admin123` |
 | Seller | `seller1@toro.local` | `seller123` |
@@ -98,216 +168,206 @@ As credenciais são criadas por `backend/bin/migrate.php`. As senhas são transf
 
 O seed também cria dois produtos e uma campanha inicial com orçamento de 10.000 pontos.
 
-## API disponível
+## Makefile
 
-### Health check
+O Makefile é um bônus para reduzir os comandos repetitivos durante a avaliação. Todos os comandos abaixo devem ser executados na raiz:
 
-```bash
-curl -i http://localhost:8080/health
-```
+| Comando | Função |
+|---|---|
+| `make up` | Sobe o ambiente e reconstrói as imagens. |
+| `make up-d` | Sobe o ambiente em segundo plano. |
+| `make build` | Apenas reconstrói as imagens. |
+| `make down` | Para e remove os containers, preservando o volume do banco. |
+| `make logs` | Acompanha os logs do backend. |
+| `make test-unit` | Executa o PHPUnit dentro de um container temporário. |
+| `make test-http` | Executa todos os fluxos HTTP contra a API Dockerizada. |
+| `make test` | Executa `test-unit` e `test-http`. |
 
-Resposta:
+O fluxo mais direto para uma avaliação é:
 
-```json
-{"status":"ok"}
-```
+~~~bash
+cp .env.example .env
+make up-d
+make test
+~~~
+
+## Testes
+
+### Testes unitários do backend
+
+Os testes unitários usam PHPUnit e não dependem de um banco externo. O PHPUnit é executado dentro de um container que contém PHP, Composer e as dependências do projeto.
+
+~~~bash
+make test-unit
+~~~
+
+Comando equivalente:
+
+~~~bash
+docker compose run --rm --no-deps backend vendor/bin/phpunit
+~~~
+
+Também é possível executar diretamente dentro de um backend já iniciado:
+
+~~~bash
+docker compose exec -T backend vendor/bin/phpunit
+~~~
+
+A suíte cobre, entre outros pontos:
+
+- regras de produto, campanha e venda;
+- cálculo de pontos e janela de cancelamento;
+- emissão e validação de JWT;
+- login com credenciais válidas e inválidas;
+- principal autenticado e validação de papel;
+- middleware de autenticação e autorização;
+- router e composição dos middlewares.
+
+### Testes HTTP e integração
+
+Os testes HTTP usam a API real, o PHP em execução e o MySQL do Compose. Eles criam dados com identificadores próprios para poderem ser repetidos sem depender de fixtures frágeis.
+
+Com o ambiente em execução:
+
+~~~bash
+make test-http
+~~~
+
+O comando executa estes fluxos:
+
+| Script | Cenários verificados |
+|---|---|
+| `bin/test-http.sh` | `401`, `403` e `200` na rota administrativa protegida. |
+| `bin/test-users-http.sh` | Cadastro/listagem de sellers, validações, duplicidade e ausência de `password_hash`. |
+| `bin/test-products-http.sh` | CRUD, SKU duplicado, validação e inativação lógica. |
+| `bin/test-campaigns-http.sh` | Autorização, validação, criação e listagem de campanhas. |
+| `bin/test-sales-http.sh` | Lançamento, idempotência, conflito de `external_id` e verba insuficiente. |
+| `bin/test-sales-history-http.sh` | Histórico protegido, contexto da venda, pontos do crédito original após edição do produto e cancelamento. |
+| `bin/test-cancellations-http.sh` | Cancelamento, estorno, venda inexistente e repetição idempotente. |
+| `bin/test-wallet-http.sh` | Saldo derivado do ledger, crédito, débito, ownership e proteção contra `seller_id` arbitrário. |
+| `bin/test-concurrency-http.sh` | Duas vendas concorrentes disputando a verba e dois cancelamentos concorrentes da mesma venda. |
+
+Para executar um fluxo isolado:
+
+~~~bash
+docker compose exec -T backend sh -c \
+  'BASE_URL=http://127.0.0.1:8080 sh bin/test-sales-http.sh'
+~~~
+
+### Testes do frontend
+
+O frontend possui testes automatizados para autenticação, geração de SKU e conversão/exportação CSV.
+
+Com Node.js 22 ou superior instalado:
+
+~~~bash
+cd frontend
+npm ci
+npm run test
+npm run lint
+npm run build
+~~~
+
+Também é possível executar os comandos usando a imagem do frontend:
+
+~~~bash
+docker compose run --rm --no-deps frontend npm run test
+docker compose run --rm --no-deps frontend npm run lint
+docker compose run --rm --no-deps frontend npm run build
+~~~
+
+## API principal
+
+| Método | Rota | Acesso | Finalidade |
+|---|---|---|---|
+| `GET` | `/health` | Público | Health check. |
+| `POST` | `/auth/login` | Público | Login e emissão do JWT. |
+| `GET/POST/PUT/DELETE` | `/products` | Admin | Produtos e inativação lógica. |
+| `GET/POST` | `/campaigns` | Admin | Campanhas e acompanhamento da verba. |
+| `GET/POST` | `/users` | Admin | Cadastro/listagem de sellers. |
+| `GET/POST` | `/sales` | Admin | Histórico e lançamento de vendas. |
+| `POST` | `/sales/{external_id}/cancel` | Admin | Cancelamento e estorno. |
+| `GET` | `/me/wallet` | Seller | Saldo e extrato do seller autenticado. |
+
+O arquivo [`requests/api.http`](requests/api.http) reúne exemplos das principais requisições para uso em clientes compatíveis com o formato `.http`.
 
 ### Login
 
-```bash
+~~~bash
 curl -i -X POST http://localhost:8080/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@toro.local","password":"admin123"}'
-```
+~~~
 
-Resposta válida: `200` com um JWT no campo `token`.
+Uma resposta válida retorna `200` com um JWT no campo `token`. Credenciais inválidas retornam `401`; campos ausentes ou inválidos retornam `422`.
 
-Credenciais inválidas retornam `401`. Campos ausentes ou inválidos retornam `422`.
+### Lançamento de venda
 
-O token contém `sub`, `role`, `iat` e `exp`. O segredo é configurado por `JWT_SECRET` no ambiente; o Compose fornece um valor de desenvolvimento padrão. Em qualquer ambiente real, substitua esse valor por um segredo aleatório com pelo menos 32 caracteres.
-
-O registro de vendas e o cancelamento com estorno estão disponíveis para
-administradores. A venda aprovada só pode ser cancelada antes de completar 30
-dias desde `created_at`; o limite e qualquer instante posterior retornam `422`.
-
-Na interface, o admin pode consultar o histórico de vendas, cancelar uma venda
-pela própria linha e exportar as vendas carregadas para CSV UTF-8 compatível com
-Excel. O arquivo usa separador `;` e não cria uma nova requisição.
-
-### Sellers administrativos
-
-O admin pode cadastrar e listar sellers sem expor `password_hash`:
-
-```text
-GET  /users/sellers
-POST /users
-```
-
-Essas rotas exigem token de admin. A tela de vendas usa a listagem para mostrar
-nome e e-mail no seletor, mantendo o `seller_id` apenas no payload interno.
-
-### Histórico administrativo de vendas
-
-```bash
-curl -i http://localhost:8080/sales \
-  -H "Authorization: Bearer <admin-token>"
-```
-
-A resposta contém seller, produto, campanha, quantidade, pontos, status, data e
-o identificador técnico da venda. A ordenação é da mais recente para a mais
-antiga.
-
-### Registro de venda
-
-```bash
+~~~bash
 curl -i -X POST http://localhost:8080/sales \
   -H "Authorization: Bearer <admin-token>" \
   -H "Content-Type: application/json" \
   -d '{"external_id":"erp-sale-1001","campaign_id":1,"seller_id":2,"product_id":1,"quantity":3,"unit_value":"149.90"}'
-```
+~~~
 
-Os pontos são calculados como `quantity * product.points_per_unit`. A venda
-rejeita integralmente quando não há verba suficiente. Venda, crédito no ledger
-e atualização de `budget_used` são persistidos na mesma transação. Repetir o
-mesmo `external_id` retorna a venda existente sem pontuar novamente.
+O retorno inclui a venda persistida e `points`. Repetir o mesmo `external_id` retorna `200` sem duplicar o crédito.
 
-### Cancelamento e estorno
+### Cancelamento
 
-```bash
+~~~bash
 curl -i -X POST http://localhost:8080/sales/erp-sale-1001/cancel \
   -H "Authorization: Bearer <admin-token>"
-```
+~~~
 
-O cancelamento marca a venda como `canceled`, cria um débito com os pontos do
-crédito original e devolve esses pontos à verba da campanha na mesma transação.
-Repetir a chamada retorna `200` sem criar outro débito. Uma venda inexistente
-retorna `404`; uma venda aprovada fora da janela de 30 dias retorna `422`.
+O retorno contém a venda cancelada e `reversed_points`, sempre baseado no crédito original do ledger.
 
-### Carteira do seller
+### Carteira
 
-```bash
+~~~bash
 curl -i http://localhost:8080/me/wallet \
   -H "Authorization: Bearer <seller-token>"
-```
+~~~
 
-A resposta contém `balance` e `entries`. O saldo é calculado como créditos
-menos débitos do ledger; o endpoint usa o seller do JWT e não aceita um
-`seller_id` arbitrário. Admin recebe `403`.
+O endpoint usa o seller presente no JWT. Não aceita um `seller_id` enviado pelo cliente para consultar a carteira de outra pessoa. Admin recebe `403`.
 
-### Verificação de autorização
+## Frontend
 
-```bash
-backend/bin/test-http.sh
-```
+O frontend apresenta áreas diferentes conforme o papel autenticado:
 
-O script usa a API Dockerizada e verifica a rota `GET /admin/ping` sem token (`401`), com token de seller (`403`) e com token de admin (`200`).
+### Admin
 
-O fluxo `backend/bin/test-products-http.sh` verifica autorização, validação, criação, listagem, edição, SKU duplicado e inativação idempotente contra a API e o MySQL Dockerizados.
+- Produtos: criação, edição e inativação;
+- Campanhas: criação e acompanhamento de `budget_used / budget_total`;
+- Vendas: seleção de seller, produto e campanha, lançamento, histórico, cancelamento e exportação CSV;
+- Usuários: cadastro e listagem de sellers.
 
-O fluxo `backend/bin/test-campaigns-http.sh` verifica autorização, validação, criação e listagem de campanhas contra a API e o MySQL Dockerizados.
+### Seller
 
-O fluxo `backend/bin/test-sales-http.sh` verifica autorização, validação,
-criação, idempotência, conflito de identificador e verba insuficiente.
+- acesso somente à própria carteira;
+- saldo calculado pelo ledger;
+- extrato com créditos e débitos;
+- tratamento de sessão expirada e ausência de permissão.
 
-O fluxo `backend/bin/test-cancellations-http.sh` verifica autorização,
-cancelamento, estorno, venda inexistente e repetição idempotente.
-
-O fluxo `backend/bin/test-wallet-http.sh` verifica autorização, cálculo do
-saldo, ownership entre sellers, crédito, estorno e repetição idempotente.
-
-O admin pode cadastrar sellers pela tela **Usuários**. O formulário de venda
-gera automaticamente o `external_id` técnico e permite escolher o seller por
-nome e e-mail; a API continua recebendo o campo para preservar a idempotência.
-
-O fluxo `backend/bin/test-users-http.sh` verifica cadastro e listagem de sellers,
-incluindo `401`, `403`, `409`, `422` e ausência de `password_hash`.
-
-O fluxo `backend/bin/test-sales-history-http.sh` verifica a listagem protegida,
-os nomes contextuais, os pontos calculados e o cancelamento pela venda listada.
-
-O fluxo `backend/bin/test-concurrency-http.sh` verifica duas vendas concorrentes
-disputando a mesma verba e dois cancelamentos concorrentes da mesma venda. O
-caso de uso repete transações que recebem deadlock transitório e retorna `503`
-em JSON se a concorrência persistir.
-
-## Testes
-
-Os comandos principais também estão disponíveis no `Makefile`:
-
-```bash
-make up
-make test-unit
-make test-http
-make test
-make down
-```
-
-Verificar o frontend:
-
-```bash
-cd frontend
-npm run test
-npm run lint
-npm run build
-```
-
-O build é servido pelo Vite em desenvolvimento e o proxy mantém as chamadas
-da interface no mesmo host da aplicação.
-
-Executar a suíte PHPUnit dentro do container:
-
-```bash
-docker compose run --rm --no-deps backend vendor/bin/phpunit
-```
-
-O projeto também possui testes unitários para:
-
-- Health controller;
-- Router;
-- Emissão e validação de JWT;
-- Login válido e inválido.
-- Principal autenticado e validação de papel;
-- Autenticação de rotas com Bearer token;
-- Pipeline de middlewares do router, incluindo os cenários `401` e `403`.
-- Verificação HTTP real da rota protegida com `curl`.
-- CRUD de produtos e inativação lógica com teste HTTP real.
-- Criação e listagem de campanhas com teste HTTP real.
-- Registro de vendas e regras transacionais pelo teste HTTP Dockerizado.
-- Cancelamento, estorno e idempotência pelo teste HTTP Dockerizado.
-- Carteira, extrato, ownership e saldo derivado do ledger pelo teste HTTP Dockerizado.
-- Concorrência de verba e cancelamento pelo teste HTTP Dockerizado.
-- Conversor CSV do histórico com teste automatizado do frontend.
-
-## Banco de dados
+## Banco e persistência
 
 - Schema: `backend/database/schema.sql`;
-- Migration e seed: `backend/bin/migrate.php`;
-- Conexão PDO: `backend/src/Infrastructure/Database/ConnectionFactory.php`.
+- Bootstrap/migration e seed: `backend/bin/migrate.php`;
+- Conexão PDO: `backend/src/Infrastructure/Database/ConnectionFactory.php`;
+- Foreign keys, índices, constraints de valores positivos e unicidade de `external_id`;
+- valores monetários armazenados em `DECIMAL`, nunca em `float`;
+- pontos e quantidades armazenados como inteiros positivos.
 
-O saldo da carteira é calculado pelo ledger. Pontos e atualização de verba da
-venda são persistidos na mesma transação.
+## Decisões relevantes
 
-## Arquitetura
+As decisões de domínio mais importantes estão documentadas em [`docs/decisions/`](docs/decisions/):
 
-```text
-backend/src/
-├── Application/      # Casos de uso
-├── Domain/           # Regras de negócio
-├── Http/             # Router, controllers e middleware
-└── Infrastructure/  # PDO, repositories, JWT e integrações
-```
+- política de rejeição integral quando a verba é insuficiente;
+- ledger como fonte da verdade do saldo;
+- idempotência de vendas e cancelamentos;
+- autenticação JWT;
+- pontos de estorno vindos do crédito original;
+- janela de cancelamento de 30 dias.
 
-Documentação complementar:
+## Próximos passos possíveis
 
-- `DESAFIO-TORO.md`: enunciado original;
-- `docs/specs/`: especificações funcionais;
-- `docs/decisions/`: decisões arquiteturais;
-- `AGENTS.md`: regras de desenvolvimento do projeto;
-- `memory.md`: estado e próximas tarefas.
-
-## Próximas etapas opcionais
-
-- gerar o SKU também no backend e permitir omissão do campo na API;
-- adicionar OpenAPI/Swagger;
-- adicionar paginação e filtros ao histórico;
-- exportar grandes volumes de vendas pelo backend.
+Com mais tempo, os próximos incrementos seriam paginação e filtros no histórico, OpenAPI/Swagger, auditoria de quem lançou cada venda e uma estratégia de migration versionada para ambientes já existentes.

@@ -28,14 +28,14 @@ final class SalesService
     }
 
     /** @param array<string, mixed> $input */
-    /** @return array{sale: Sale, created: bool} */
+    /** @return array{sale: Sale, created: bool, points: int} */
     public function create(array $input): array
     {
         return $this->createAttempt($input, 0);
     }
 
     /** @param array<string, mixed> $input */
-    /** @return array{sale: Sale, created: bool} */
+    /** @return array{sale: Sale, created: bool, points: int} */
     private function createAttempt(array $input, int $attempt): array
     {
         [$externalId, $campaignId, $sellerId, $productId, $quantity, $unitValue] = $this->validatedInput($input);
@@ -50,9 +50,10 @@ final class SalesService
                     throw new SaleConflictException('Sale external_id is already used with different data.');
                 }
 
+                $points = $this->creditPoints($existing);
                 $this->connection->commit();
 
-                return ['sale' => $existing, 'created' => false];
+                return ['sale' => $existing, 'created' => false, 'points' => $points];
             }
 
             try {
@@ -84,7 +85,7 @@ final class SalesService
             $this->campaigns->increaseBudgetUsed($campaignId, $points);
             $this->connection->commit();
 
-            return ['sale' => $sale, 'created' => true];
+            return ['sale' => $sale, 'created' => true, 'points' => $points];
         } catch (SaleConflictException|SaleValidationException $exception) {
             if ($this->connection->inTransaction()) {
                 $this->connection->rollBack();
@@ -113,7 +114,7 @@ final class SalesService
             if (($exception->errorInfo[1] ?? null) === 1062) {
                 $existing = $this->sales->findByExternalId($externalId);
                 if ($existing !== null && $this->matches($existing, $campaignId, $sellerId, $productId, $quantity, $unitValue)) {
-                    return ['sale' => $existing, 'created' => false];
+                    return ['sale' => $existing, 'created' => false, 'points' => $this->creditPoints($existing)];
                 }
 
                 throw new SaleConflictException('Sale external_id is already used.', 0, $exception);
@@ -151,10 +152,7 @@ final class SalesService
             }
 
             if ($sale->status === 'canceled') {
-                $points = $this->sales->findCreditPoints($sale->id);
-                if ($points === null || $points <= 0) {
-                    throw new SaleValidationException('Sale credit is invalid.');
-                }
+                $points = $this->creditPoints($sale);
 
                 $this->connection->commit();
 
@@ -173,10 +171,7 @@ final class SalesService
                 throw new SaleValidationException('Sale cancellation window has expired.');
             }
 
-            $points = $this->sales->findCreditPoints($sale->id);
-            if ($points === null || $points <= 0) {
-                throw new SaleValidationException('Sale credit is invalid.');
-            }
+            $points = $this->creditPoints($sale);
 
             $campaign = $this->campaigns->findForUpdate($sale->campaignId);
             if ($campaign->budgetUsed < $points) {
@@ -267,6 +262,16 @@ final class SalesService
             && $sale->productId === $productId
             && $sale->quantity === $quantity
             && $sale->unitValue === $unitValue;
+    }
+
+    private function creditPoints(Sale $sale): int
+    {
+        $points = $this->sales->findCreditPoints($sale->id);
+        if ($points === null || $points <= 0) {
+            throw new SaleValidationException('Sale credit is invalid.');
+        }
+
+        return $points;
     }
 
     private function isDeadlock(PDOException $exception): bool

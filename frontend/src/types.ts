@@ -32,6 +32,10 @@ export type Sale = {
   created_at: string
 }
 
+export type SaleResponse = Sale & {
+  points: number
+}
+
 export type SaleListItem = Sale & {
   campaign_name: string
   seller_name: string

@@ -47,12 +47,13 @@ final class SalesRepository
         $statement = $this->connection->query(
             'SELECT s.id, s.external_id, s.campaign_id, c.name AS campaign_name,
                     s.seller_id, u.name AS seller_name, s.product_id, p.name AS product_name,
-                    s.quantity, s.unit_value, s.quantity * p.points_per_unit AS points,
+                    s.quantity, s.unit_value, credit.points AS points,
                     s.status, s.created_at
              FROM sales s
              INNER JOIN campaigns c ON c.id = s.campaign_id
              INNER JOIN users u ON u.id = s.seller_id
              INNER JOIN products p ON p.id = s.product_id
+             INNER JOIN wallet_entries credit ON credit.sale_id = s.id AND credit.type = \'credit\'
              ORDER BY s.created_at DESC, s.id DESC',
         );
 

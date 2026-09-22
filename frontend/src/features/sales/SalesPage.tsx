@@ -86,7 +86,7 @@ export function SalesPage({ token, onUnauthorized }: SalesPageProps) {
         campaign_name: campaign?.name ?? 'Campanha',
         seller_name: seller?.name ?? 'Seller',
         product_name: product?.name ?? 'Produto',
-        points: response.sale.quantity * (product?.points_per_unit ?? 0),
+        points: response.sale.points,
       }, ...current])
       setFeedback(`Venda ${response.sale.external_id} registrada com sucesso.`)
       setForm({ ...emptyForm, product_id: form.product_id, campaign_id: form.campaign_id, seller_id: form.seller_id })

@@ -6,6 +6,7 @@ import type {
   Sale,
   SaleInput,
   SaleListItem,
+  SaleResponse,
   SellerInput,
   User,
   Wallet,
@@ -78,7 +79,7 @@ export const api = {
       body: JSON.stringify(input),
     }),
   createSale: (token: string, input: SaleInput) =>
-    request<{ sale: Sale }>('/sales', token, {
+    request<{ sale: SaleResponse }>('/sales', token, {
       method: 'POST',
       body: JSON.stringify(input),
     }),
