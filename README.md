@@ -387,6 +387,13 @@ As decisões de domínio mais importantes estão documentadas em [`docs/decision
 - pontos de estorno vindos do crédito original;
 - janela de cancelamento de 30 dias.
 
+## OBS:
 
+Ficou faltando algumas coisas que queria ter implementado
+
+-não existe tabela de auditoria 
+poderia adicionar uma tabela com audit_logs, actor_id, acao, entidade afetada... 
+
+Também implementaria logs estruturados para login, criação/cancelamento de vendas
 
 # Agradeço pela oportunidade!
