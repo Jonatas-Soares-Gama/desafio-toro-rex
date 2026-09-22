@@ -23,16 +23,6 @@ O projeto contempla os fluxos principais do desafio:
 - frontend React para os fluxos de admin e seller;
 - testes unitários, testes HTTP contra MySQL real e testes automatizados do frontend.
 
-## Como a solução atende aos critérios de avaliação
-
-| Critério | Como foi tratado |
-|---|---|
-| Motor de pontuação — 30% | Pontos calculados por `quantity * points_per_unit`; venda acima da verba é rejeitada integralmente; venda, crédito no ledger e consumo da campanha usam uma única transação. |
-| Segurança e ACL — 20% | JWT assinado e validado, expiração, papéis `admin`/`seller`, ownership da carteira, prepared statements, validação no servidor e nenhuma exposição de `password_hash`. |
-| Qualidade do código — 20% | PHP 8 puro, PDO, separação entre Domain, Application, Infrastructure e Http, responsabilidades pequenas e regras de negócio fora dos controllers. |
-| Facilidade para rodar — 15% | Docker Compose, MySQL, migration/seed no boot, credenciais de demonstração, `.env.example` e comandos equivalentes no Makefile. |
-| Frontend — 15% | React + TypeScript com login, área administrativa, carteira do seller, estados de carregamento/erro, tratamento de `401`/`403` e exportação CSV. |
-
 ## Regras de negócio importantes
 
 ### Pontuação e verba
@@ -134,6 +124,33 @@ Serviços disponíveis:
 O backend aguarda o MySQL ficar saudável, executa `backend/bin/migrate.php` e inicia o servidor PHP. O script cria o schema e aplica o seed de demonstração.
 
 O frontend usa o proxy do Vite para encaminhar as chamadas de `/auth`, `/products`, `/campaigns`, `/users`, `/sales` e `/me` para o backend. Não é necessário configurar CORS no ambiente local.
+
+## Testar a API pelo Postman
+
+A collection pública com a documentação dos endpoints, exemplos de headers, bodies, respostas e cenários de erro está disponível no Postman:
+
+[Abrir `Vendeu, Ganhou — API — Testes Públicos` no Postman](https://go.postman.co/collection/44957253-6363b02a-f2c0-401c-800c-941d3b8c64b4)
+
+### Use o Desktop Agent para acessar o backend local
+
+Como a API roda em `http://localhost:8080` na máquina de quem está testando, o Postman Web não consegue acessá-la sozinho. Antes de enviar qualquer request:
+
+1. Instale e abra o [Postman Desktop Agent](https://www.postman.com/downloads/).
+2. Mantenha o Agent em execução e confirme que o status está `Connected`.
+3. No Postman, selecione `Desktop Agent` no seletor de agente, e não `Cloud Agent`.
+4. Confirme que o projeto está em execução com `docker compose up --build` e que `GET http://localhost:8080/health` retorna `200`.
+
+Se o Agent não estiver conectado, a collection pode abrir normalmente, mas as requisições para `localhost` falharão com erro de conexão. Se aparecer `HTTP Request not found`, remova um fork antigo e importe novamente a collection pelo link atualizado acima.
+
+Para executar os testes:
+
+1. Abra o link e faça um fork ou importe a collection para o seu workspace do Postman.
+2. Configure `baseUrl` com `http://localhost:8080` quando estiver executando a API localmente.
+3. Preencha `adminEmail`, `adminPassword`, `sellerEmail` e `sellerPassword` com credenciais do seu ambiente.
+4. Execute `Login — Admin` ou `Login — Seller` antes dos endpoints protegidos. Os testes salvam os tokens automaticamente.
+5. Para testar vendas, execute primeiro os requests de produtos, campanhas e sellers para preencher `productId`, `campaignId` e `sellerId`.
+
+A collection pública utiliza placeholders e não contém credenciais reais. O link permite visualizar e fazer fork da documentação; os requests só funcionarão se a API estiver disponível no endereço configurado e as credenciais pertencerem ao ambiente usado.
 
 ### Configuração
 
@@ -367,7 +384,3 @@ As decisões de domínio mais importantes estão documentadas em [`docs/decision
 - autenticação JWT;
 - pontos de estorno vindos do crédito original;
 - janela de cancelamento de 30 dias.
-
-## Próximos passos possíveis
-
-Com mais tempo, os próximos incrementos seriam paginação e filtros no histórico, OpenAPI/Swagger, auditoria de quem lançou cada venda e uma estratégia de migration versionada para ambientes já existentes.
