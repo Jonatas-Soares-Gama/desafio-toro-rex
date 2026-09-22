@@ -50,3 +50,10 @@ desktop.ini
 *.seed
 *.pid.lock
 
+# Codex / agent metadata and planning artifacts
+AGENTS.md
+.agents/
+.codex/
+/docs/plans/
+/docs/specs/
+memory.md
